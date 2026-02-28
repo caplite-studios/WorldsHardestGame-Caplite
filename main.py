@@ -77,6 +77,13 @@ class Coin(pg.sprite.Sprite):
         self.pos = pg.Vector2(self.anchor_pos.x, self.anchor_pos.y + math.sin(t * 2.5) * 15)
         self.rect.topleft = (int(self.pos.x), int(self.pos.y))
 
+class Wall(pg.sprite.Sprite):
+
+    def __init__(self, x, y):
+        pg.sprite.Sprite.__init__(self)
+        self.image = pg.Surface(x, y)
+        self.rect = self.image.get_rect()
+    
 
 ########################################################
 # Initialize Sprites
@@ -136,7 +143,7 @@ while running:
                 )
 
                 # TODO: REMOVE To truly center the text, set to sw/2 - tw/2
-                screen.blit(txt, (screen.get_width() / 2 - txt.get_width() / 2, screen.get_height() / 10))
+                # screen.blit(txt, (screen.get_width() / 2 - txt.get_width() / 2, screen.get_height() / 10))
 
             except Exception as E:
                 print(E)

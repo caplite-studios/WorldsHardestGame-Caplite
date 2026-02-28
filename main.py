@@ -1,24 +1,24 @@
-# Example file showing a circle moving on screen
 import os
 import pygame as pg
 import math
-# pygame setup
+
 pg.init()
 screen = pg.display.set_mode((1280, 720))
 clock = pg.time.Clock()
 running = True
 dt = 0
-
+########################################################
 # Define global variables 
+########################################################
 LEVEL = 1
 
 import LevelFunctions
 PLAYER_COLOR = pg.Color(251,3,1)
 SPEED_INT = 4
 PLAYER_SPEED = SPEED_INT * 100
-
+########################################################
 # Define helper functions
-
+########################################################
 main_dir = os.path.split(os.path.abspath(__file__))[0]
 assets_dir = os.path.join(main_dir, "assets")
 
@@ -32,16 +32,9 @@ def load_image(name, scale=1, size=None):
         image = pg.transform.scale(image, (int(size[0] * scale), int(size[1] * scale)))
     return image, image.get_rect()
 
-
-
-player_img= pg.image.load('./assets/Character.png').convert_alpha()
-PLAYER_IMG = pg.transform.scale(player_img, (48, 48))
-
-coin_img= pg.image.load('./assets/coin.png').convert_alpha()
-COIN_IMG = pg.transform.scale(coin_img, (48, 48))
-
-#Define our player sprites
-
+########################################################
+# Define our player sprites
+########################################################
 class Player(pg.sprite.Sprite):
 
     def __init__(self, x, y):
@@ -85,12 +78,9 @@ class Coin(pg.sprite.Sprite):
         self.rect.topleft = (int(self.pos.x), int(self.pos.y))
 
 
-# TEST CODE - REMOVE ALL REFERENCES
-font = pg.font.SysFont("comicsans", 20)
-txt = pg.font.Font.render(font, "Level 1", True, (0, 0, 0))
-# END TEST CODE
-
-
+########################################################
+# Initialize Sprites
+########################################################
 # spawns player in the middle left of screen
 player = Player(screen.get_width()/2, screen.get_height()/2)
 
@@ -104,7 +94,9 @@ match LEVEL: # change player spawn position based on the level number
         # spawn player in the middle of the screen, all the way to the left
         player_pos = pg.Vector2(0, screen.get_height() / 2)
 
+########################################################
 #GAME LOOP
+########################################################
 time = 0
 while running:
     time = pg.time.get_ticks() / 1000 

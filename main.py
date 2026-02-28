@@ -48,8 +48,8 @@ class Player(pg.sprite.Sprite):
         self.pos = pg.math.Vector2(x, y)
         self.velocity = pg.math.Vector2(0, 0)
     
-    def update(self):
-        
+    def update(self, dt, walls):
+
         # set the player movement vector to zero before handling inputs
         self.velocity = pg.Vector2(0,0)
         keys = pg.key.get_pressed()
@@ -58,14 +58,32 @@ class Player(pg.sprite.Sprite):
         if keys[pg.K_s]:
             self.velocity.y += 1
         if keys[pg.K_a]:
-            self.velocity.x -= 1 
+            self.velocity.x -= 1
         if keys[pg.K_d]:
             self.velocity.x += 1
         #when movement vector greater than 1 (for diagonals)
         if (self.velocity.length() > 1):
             self.velocity.normalize_ip()
-        self.pos += self.velocity * PLAYER_SPEED * dt
-        self.rect.topleft = (int(self.pos.x), int(self.pos.y))
+
+        # Move X axis then resolve collisions
+        self.pos.x += self.velocity.x * PLAYER_SPEED * dt
+        self.rect.x = int(self.pos.x)
+        for wall in pg.sprite.spritecollide(self, walls, False):
+            if self.velocity.x > 0:
+                self.rect.right = wall.rect.left
+            elif self.velocity.x < 0:
+                self.rect.left = wall.rect.right
+            self.pos.x = self.rect.x
+
+        # Move Y axis then resolve collisions
+        self.pos.y += self.velocity.y * PLAYER_SPEED * dt
+        self.rect.y = int(self.pos.y)
+        for wall in pg.sprite.spritecollide(self, walls, False):
+            if self.velocity.y > 0:
+                self.rect.bottom = wall.rect.top
+            elif self.velocity.y < 0:
+                self.rect.top = wall.rect.bottom
+            self.pos.y = self.rect.y
 
 class Coin(pg.sprite.Sprite):
 
@@ -84,10 +102,26 @@ class Coin(pg.sprite.Sprite):
 class Wall(pg.sprite.Sprite):
 
 
-    def __init__(self, x, y):
+    def __init__(self, rect):
         pg.sprite.Sprite.__init__(self)
-        self.image = pg.Surface(x, y)
-        self.rect = self.image.get_rect()
+        self.image = pg.Surface((rect.width, rect.height))
+        self.rect = rect.copy()
+
+
+# get all rectangles on screen from the pixel art image 
+rectsOnScreen = LevelFunctions.convertImageToScreen(screen,'./assets/level1map.png')
+newBg = pg.Surface(screen.get_size()).convert()
+newBg.fill(LevelFunctions.BACKGROUND_COLOR)
+
+for (color, rect) in rectsOnScreen:
+    pg.draw.rect(newBg, color, rect)
+
+black_tuples = [(color, rect) for color, rect in rectsOnScreen if color == LevelFunctions.BACKGROUND_BLACK]
+
+walls = list(map(lambda obj: Wall(obj[1]), black_tuples))
+
+
+
 
 ########################################################
 # Initialize Sprites
@@ -98,16 +132,12 @@ player = Player(screen.get_width()/2, screen.get_height()/2)
 # spawns coin in the center of the screen
 coin = Coin(screen.get_width()/2, screen.get_height()/2)
 
-allsprites = pg.sprite.RenderPlain((player, coin))
+# group all sprites together
+allsprites = pg.sprite.Group((player, coin))
 
-# get all rectangles on screen from the pixel art image 
-rectsOnScreen = LevelFunctions.convertImageToScreen(screen,'./assets/level1map.png')
-newBg = pg.Surface(screen.get_size()).convert()
-newBg.fill(LevelFunctions.BACKGROUND_COLOR)
-
-for (color, rect) in rectsOnScreen:
-    pg.draw.rect(newBg, color, rect)
-
+allwalls = pg.sprite.Group()
+for wall in walls:
+    allwalls.add(wall)
     
 ########################################################
 #GAME LOOP
@@ -128,7 +158,8 @@ while running:
         running = False
 
     screen.blit(newBg,(0,0))
-    allsprites.update()
+    player.update(dt, allwalls)
+    coin.update()
 
     allsprites.draw(screen)
 

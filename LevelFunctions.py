@@ -82,7 +82,7 @@ def convertImageToScreen(screen=None, src=''):
     img = Image.open(src).convert("RGBA")
     width,height =  img.size
     pixels = img.load()
-    returnList = []
+    returnList: list[tuple[pg.Color, pg.Rect]] = []
     for x in range(width):
         for y in range(height):
             pixel_value  = pixels[x,y]

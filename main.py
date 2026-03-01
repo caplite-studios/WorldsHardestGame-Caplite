@@ -183,6 +183,9 @@ match LEVEL:
         
     case _ :
         raise "NO LEVEL SELECTED"
+
+rectsOnScreen = LevelFunctions.convertImageToScreen(screen,'./assets/level1map.png')
+LevelFunctions.cut_walls(newBg, rectsOnScreen)
 ########################################################
 # Initialize Sprites
 ########################################################

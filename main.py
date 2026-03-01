@@ -35,6 +35,17 @@ pg.display.flip()
 main_dir = os.path.split(os.path.abspath(__file__))[0]
 assets_dir = os.path.join(main_dir, "assets")
 
+# Load splash screen
+splash_img = pg.image.load(os.path.join(assets_dir, 'worlds_most_game_splash.png')).convert()
+splash_img = pg.transform.scale(splash_img, (SCREEN_WIDTH, SCREEN_HEIGHT))
+
+# Create dimmed version for menu background
+splash_dimmed = splash_img.copy()
+dim_overlay = pg.Surface((SCREEN_WIDTH, SCREEN_HEIGHT))
+dim_overlay.fill((0, 0, 0))
+dim_overlay.set_alpha(120)
+splash_dimmed.blit(dim_overlay, (0, 0))
+
 
 def get_font(size):
     return pg.font.SysFont('comicsansms', size)
@@ -631,10 +642,25 @@ def game_loop():
 ########################################################
 # Main menu
 ########################################################
+def splash_screen():
+    screen.blit(splash_img, (0, 0))
+    pg.display.flip()
+    start = pg.time.get_ticks()
+    while pg.time.get_ticks() - start < 3000:
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                pg.quit()
+                return False
+            if event.type == pg.KEYDOWN or event.type == pg.MOUSEBUTTONDOWN:
+                return True
+        clock.tick(60)
+    return True
+
+
 def main_menu():
     font = get_font(30)
     while True:
-        screen.blit(background, (0, 0))
+        screen.blit(splash_dimmed, (0, 0))
         menu_mouse_pos = pg.mouse.get_pos()
 
         play_button = Button(
@@ -662,7 +688,5 @@ def main_menu():
                 return
 
 
-main_menu()
-
-
-    
+if splash_screen():
+    main_menu()

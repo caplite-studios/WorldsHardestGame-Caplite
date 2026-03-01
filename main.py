@@ -49,7 +49,7 @@ class Button():
         self.rect = self.surface.get_rect(center=(self.x_pos, self.y_pos))
 
     def update(self, screen):
-        screen.blit(self.surface, (self.x_pos, self.y_pos))
+        screen.blit(self.surface, self.rect)
 
     def change_color(self, pos):
         x, y = pos
@@ -72,6 +72,13 @@ class Player(pg.sprite.Sprite):
         self.rect.topleft = (x, y)
         self.pos = pg.math.Vector2(x, y)
         self.velocity = pg.math.Vector2(0, 0)
+        self.mask = pg.mask.from_surface(self.image)
+        self.dead = False
+
+    def respawn(self, pos):
+        self.pos = pos.copy()
+        self.rect.topleft = (int(self.pos.x), int(self.pos.y))
+        self.dead = False
 
     def update(self, dt, walls):
         self.velocity = pg.Vector2(0, 0)
@@ -136,6 +143,7 @@ class Enemy(pg.sprite.Sprite):
         pg.sprite.Sprite.__init__(self)
         self.anchor_pos = pg.math.Vector2(x, y)
         self.image, self.rect = LevelFunctions.load_image('enemy.png', 1, (48, 48))
+        self.mask = pg.mask.from_surface(self.image)
         self.pos = pg.Vector2(x, y)
         self.rect.topleft = (int(self.pos.x), int(self.pos.y))
 
@@ -176,9 +184,12 @@ def game_loop():
 
     # Spawn player at first safe area
     player = Player(screen.get_width() / 2, screen.get_height() / 2)
+    player_spawn = pg.Vector2(screen.get_width() / 2, screen.get_height() / 2)
     for (color, rect) in rectsOnScreen:
         if color == LevelFunctions.SAFE_AREA_COLOR:
-            player.pos = pg.Vector2(rect.left, rect.top)
+            player_spawn = pg.Vector2(rect.left, rect.top)
+            player.pos = player_spawn.copy()
+            player.rect.topleft = (int(player.pos.x), int(player.pos.y))
             break
 
     # Draw level tiles
@@ -214,6 +225,9 @@ def game_loop():
         if keys[pg.K_m]:
             return True  # back to menu
 
+        if player.dead:
+            player.respawn(player_spawn)
+
         screen.fill(LevelFunctions.BACKGROUND_COLOR)
         screen.blit(newBg, (0, 0))
 
@@ -223,6 +237,12 @@ def game_loop():
         lvl1Enemies.update()
         lvl1Enemies.draw(screen)
         allsprites.draw(screen)
+
+        # Check enemy collisions
+        for enemy in lvl1Enemies:
+            if pg.sprite.collide_mask(player, enemy):
+                player.dead = True
+                break
 
         pg.display.flip()
         dt = clock.tick(60) / 1000

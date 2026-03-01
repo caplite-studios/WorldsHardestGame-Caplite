@@ -1,4 +1,5 @@
 import os
+from unittest import case
 import pygame as pg
 import math
 import LevelFunctions
@@ -6,11 +7,12 @@ import LevelFunctions
 ########################################################
 # Define global variables
 ########################################################
-level = 1
+level = 4
 currentLevelSafeArea: tuple[pg.math.Vector2, pg.math.Vector2] = tuple[pg.math.Vector2(0,0),pg.math.Vector2(1,1)] 
 listOfSafeAreaBoxes: list[pg.math.Vector2] = []
 safeRectTransition = None
 rectsOnScreen = []
+numDeaths = 0
 PLAYER_COLOR = pg.Color(251, 3, 1)
 SPEED_INT = 4
 PLAYER_SPEED = SPEED_INT * 100
@@ -51,7 +53,29 @@ class LevelTransition():
         self.currentLevel= currentLevel
 
 
+class UIRect():
 
+    def __init__(self, pos, font, text_input, foreground, background):
+        self.x_pos = pos[1]
+        self.y_pos = pos[0]
+        self.font = font
+        self.foreground = foreground
+        self.background = background
+        self.text_input = text_input
+        self.surface = self.font.render(self.text_input, True, foreground, background)
+        self.rect = self.surface.get_rect(center=(self.x_pos, self.y_pos))
+
+    def update(self, screen):
+        screen.blit(self.surface, self.rect)
+
+    # def change_color(self, pos):
+    #     x, y = pos
+    #     new_bg = self.background
+    #     if x in range(self.rect.left, self.rect.right) and y in range(self.rect.top, self.rect.bottom):
+    #         new_bg.a = 100
+    #     else:
+    #         new_bg.a = 20
+    #     self.surface = self.font.render(self.text_input, True, self.foreground, new_bg)
 class Button():
 
     def __init__(self, pos, font, text_input, foreground, background):
@@ -229,6 +253,21 @@ def SetUpLevel(level):
                     safeArea[0].y * smaller_bg_square_length
                 ))
             return safeRectTransition
+        case 4:
+            listOfSafeAreaBoxes, rectsOnScreen = LevelFunctions.convertImageToScreen(screen, './assets/level_four.png')
+            safeArea = LevelFunctions.getAreaOfBox(listOfSafeAreaBoxes)
+            safeRectTransition = LevelTransition(
+                level,
+                pg.Rect(
+                    safeArea[2].x * LevelFunctions.BG_SQUARE_LENGTH + LevelFunctions.ORIENTATION_OFFSET_X,
+                    safeArea[2].y * LevelFunctions.BG_SQUARE_LENGTH + LevelFunctions.ORIENTATION_OFFSET_Y,
+                    safeArea[0].x * LevelFunctions.BG_SQUARE_LENGTH,
+                    safeArea[0].y * LevelFunctions.BG_SQUARE_LENGTH
+                ))
+            
+            return safeRectTransition
+        case 5:
+            pass # win level right now 
         case _:
             raise ValueError("NO LEVEL SELECTED")
         
@@ -301,11 +340,50 @@ class SquareEnemy(Enemy):
 
 
 ########################################################
+# Win Screen!
+########################################################
+
+def win_screen():
+    font1 = get_font(180)
+    font2 = get_font(60)
+    while True:
+        screen.blit(background, (0, 0))
+        win_UI = UIRect(
+            pos=(screen.get_width() / 2, screen.get_height() / 2),
+            font=font1,
+            text_input="You Win!",
+            foreground=pg.Color(0, 0, 0),
+            background=pg.Color(255, 255, 255, 50)
+        )
+        TotalDeathsUI = UIRect(
+            pos=(screen.get_width() / 4, screen.get_height() / 4),
+            font=font2,
+            text_input=f'TOTAL DEATHS: {numDeaths}',
+            foreground=pg.Color(0, 0, 0),
+            background=pg.Color(255, 255, 255, 50)
+        )
+        
+        win_UI.update(screen)
+        TotalDeathsUI.update(screen)
+        pg.display.flip()
+
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                pg.quit()
+                return
+            if event.type == pg.KEYDOWN and event.key == pg.K_m:
+                pg.quit()
+                return
+            
+
+########################################################
 # Game loop
 ########################################################
-happenOnce = True
+cooldownTimer = 0
+
 def game_loop():
-    global listOfSafeAreaBoxes, currentLevelSafeArea,happenOnce,level,safeRT
+
+    global listOfSafeAreaBoxes, currentLevelSafeArea,level,safeRT,numDeaths,cooldownTimer
     dt = clock.tick(60) / 1000
 
     # Build level background and walls
@@ -318,6 +396,16 @@ def game_loop():
     walls = list(map(lambda obj: Wall(obj[1]), black_tuples))
     allwalls = pg.sprite.Group(walls)
 
+
+
+
+    screen.fill(LevelFunctions.BACKGROUND_COLOR)
+    screen.blit(newBg, (0, 0))
+    pg.display.flip()
+    for event in pg.event.get():
+        if event.type == pg.QUIT:
+            pg.quit()
+            return False
     # Spawn player at first safe area
     player = Player(screen.get_width() / 2, screen.get_height() / 2)
     player_spawn = pg.Vector2(screen.get_width() / 2, screen.get_height() / 2)
@@ -326,7 +414,6 @@ def game_loop():
             player_spawn = pg.Vector2(rect.left, rect.top)
             player.pos = player_spawn.copy()
             player.rect.topleft = (int(player.pos.x), int(player.pos.y))
-            #happenOnce = True
             break
 
 
@@ -352,10 +439,34 @@ def game_loop():
             enemies.add(SinEnemy(cx - 25, cy - 135, 3, 270, 1,'x'))
 
         case 2:
-            enemies.add(SinEnemy(cx - 25, cy - 135, 3, 270, 1,'x'))
-
+            enemies.add(SinEnemy(cx+135, cy - 125, 3, 190, 1,'y'))
+            enemies.add(SinEnemy(cx+75, cy - 125, 3, 190, 0,'y'))
+            enemies.add(SinEnemy(cx+15, cy - 125, 3, 190, 1,'y'))
+            enemies.add(SinEnemy(cx-45, cy - 125, 3, 190, 0,'y'))
+            enemies.add(SinEnemy(cx-105, cy - 125, 3, 190, 1,'y'))
+            enemies.add(SinEnemy(cx-165, cy - 125, 3, 190, 0,'y'))
+            enemies.add(SinEnemy(cx-235, cy - 125, 3, 190, 1,'y'))
+            enemies.add(SinEnemy(cx-295, cy - 125, 3, 190, 0,'y'))
+            enemies.add(SinEnemy(cx-355, cy - 125, 3, 190, 1,'y'))
         case 3:
             pass
+        case 4:
+            enemies.add(SquareEnemy(cx- 75, cy+30, 1.3, 90, 0.1, clockwise=True))
+            enemies.add(SquareEnemy(cx- 75, cy+30, 1.3, 90, 0.3, clockwise=True))
+            enemies.add(SquareEnemy(cx- 75, cy+30, 1.3, 90, 0.5, clockwise=True))
+            enemies.add(SquareEnemy(cx- 75, cy+30, 1.3, 90, 0.7, clockwise=True))
+            enemies.add(SquareEnemy(cx- 75, cy+30, 1.3, 90, 0.9, clockwise=True))
+            enemies.add(SquareEnemy(cx- 75, cy+30, 1.3, 90, 1.1, clockwise=True))
+            enemies.add(SquareEnemy(cx- 75, cy+30, 1.3, 90, 1.3, clockwise=True))
+            enemies.add(SquareEnemy(cx- 75, cy+30, 1.3, 90, 1.5, clockwise=True))
+            enemies.add(SquareEnemy(cx- 75, cy+30, 1.3, 90, 1.7, clockwise=True))
+            enemies.add(SquareEnemy(cx- 75, cy+30, 1.3, 90, 1.9, clockwise=True))
+            enemies.add(SquareEnemy(cx- 75, cy+30, 1.3, 90, 2.1, clockwise=True))
+            enemies.add(SquareEnemy(cx- 75, cy+30, 1.3, 90, 2.3, clockwise=True))
+            enemies.add(SquareEnemy(cx- 75, cy+30, 1.3, 90, 2.5, clockwise=True))
+
+        case 5:
+            pass # win level right now 
         case _:
             raise ValueError("NO LEVEL SELECTED")
         
@@ -366,7 +477,11 @@ def game_loop():
 
     # Main game loop
     running = True
+
     while running:
+        #cooldown timer for death counter and coin counter
+        if cooldownTimer > 0:
+            cooldownTimer -= dt
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 pg.quit()
@@ -393,23 +508,45 @@ def game_loop():
 
         # Check enemy collisions
         for enemy in enemies:
-            if pg.sprite.collide_mask(player, enemy):
+            if pg.sprite.collide_mask(player, enemy)and cooldownTimer <=0 :
+                numDeaths+=1
                 player.dead = True
+                cooldownTimer = 1.0
                 break
 
         #Check for Finish area collisions
         if(safeRT):
             # DEBUG: pg.draw.rect(newBg, pg.Color(255,255,0), safeRT.rect)
-            if(safeRT.rect.colliderect(player.rect)and happenOnce ):
+            if(safeRT.rect.colliderect(player.rect)and cooldownTimer <=0 ):
                 level += 1
                 print(f'Send to new level {level}!')
+                cooldownTimer = 1.0
+
+                if(level ==5 ): #player wins the game as of now 
+                    win_screen()
+                    return False # return out of game completely
+                    
                 safeRT = SetUpLevel(level)
-                return game_loop()
+                return game_loop()  # restart loop cleanly
+        
+        #blit the ui
+        font = get_font(20)
+        
+        DeathCounterUI = UIRect(
+            pos=(screen.get_width() / 2-300, screen.get_height() / 2-300),
+            font=font,
+            text_input=f'Death Count: {numDeaths}',
+            foreground=pg.Color(0, 0, 0),
+            background=pg.Color(255, 255, 255, 50)
+        )
+        DeathCounterUI.update(screen)
 
         pg.display.flip()
         dt = clock.tick(60) / 1000
 
     return False
+
+
 
 
 ########################################################
@@ -448,3 +585,5 @@ def main_menu():
 
 main_menu()
 
+
+    

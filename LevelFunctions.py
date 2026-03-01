@@ -33,7 +33,7 @@ Given an image (32x32)
 1. iterate through each pixel of the image  
 2. draw rect (size 60) at coordinate scaled up 
 """
-def convertImageToScreen(screen=None, src=''):
+def convertImageToScreen(screen=None, src='', square_length=BG_SQUARE_LENGTH):
     if(screen ==None):
         raise ValueError("[convertImageToScreen]  not given!")
     if(src ==''):
@@ -53,16 +53,16 @@ def convertImageToScreen(screen=None, src=''):
             # if(x ==9 and y==13):
             #     print(f'colors of pixel ({x},{y}) = {r,g,b,a} ')
             currentRect = pg.Rect(
-                ORIENTATION_OFFSET_X + x * BG_SQUARE_LENGTH,
-                ORIENTATION_OFFSET_Y + y * BG_SQUARE_LENGTH,
-                BG_SQUARE_LENGTH,
-                BG_SQUARE_LENGTH
+                ORIENTATION_OFFSET_X + x * square_length,
+                ORIENTATION_OFFSET_Y + y * square_length,
+                square_length,
+                square_length
             )
             currColor = pg.Color(r,g,b,a) if a != 0 else BACKGROUND_COLOR
             returnList.append((currColor,currentRect))
     return returnList
 
-def cut_walls(surface: pg.surface.Surface, rects: list[tuple[pg.Color, pg.Rect]]):
+def cut_walls(surface: pg.surface.Surface, rects: list[tuple[pg.Color, pg.Rect]], square_length=BG_SQUARE_LENGTH):
     LINE_WIDTH = 3
 
     def non_playable(color):
@@ -80,10 +80,10 @@ def cut_walls(surface: pg.surface.Surface, rects: list[tuple[pg.Color, pg.Rect]]
 
         # For each cardinal neighbor, draw a border line if it faces a playable square
         cardinal_neighbors = {
-            'N': (rect.left, rect.top - BG_SQUARE_LENGTH),
-            'S': (rect.left, rect.top + BG_SQUARE_LENGTH),
-            'E': (rect.left + BG_SQUARE_LENGTH, rect.top),
-            'W': (rect.left - BG_SQUARE_LENGTH, rect.top),
+            'N': (rect.left, rect.top - square_length),
+            'S': (rect.left, rect.top + square_length),
+            'E': (rect.left + square_length, rect.top),
+            'W': (rect.left - square_length, rect.top),
         }
         for direction, pos in cardinal_neighbors.items():
             neighbor_color = color_map.get(pos)

@@ -248,7 +248,7 @@ def game_loop():
 
     # Build level background and walls
     
-    rectsOnScreen = LevelFunctions.convertImageToScreen(screen, './assets/level1map.png')
+    rectsOnScreen = LevelFunctions.convertImageToScreen(screen, './assets/level_duck.png', 50)
 
 
     newBg = pg.Surface(screen.get_size()).convert()
@@ -271,7 +271,7 @@ def game_loop():
     # Draw level tiles
     for (color, rect) in rectsOnScreen:
         pg.draw.rect(newBg, color, rect)
-    LevelFunctions.cut_walls(newBg, rectsOnScreen)
+    LevelFunctions.cut_walls(newBg, rectsOnScreen, 50)
 
     # Create enemies
 

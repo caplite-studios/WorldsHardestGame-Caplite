@@ -7,7 +7,7 @@ import LevelFunctions
 ########################################################
 # Define global variables
 ########################################################
-level = 4
+level = 1
 currentLevelSafeArea: tuple[pg.math.Vector2, pg.math.Vector2] = tuple[pg.math.Vector2(0,0),pg.math.Vector2(1,1)] 
 listOfSafeAreaBoxes: list[pg.math.Vector2] = []
 safeRectTransition = None
@@ -79,8 +79,8 @@ class UIRect():
 class Button():
 
     def __init__(self, pos, font, text_input, foreground, background):
-        self.x_pos = pos[1]
-        self.y_pos = pos[0]
+        self.x_pos = pos[0]
+        self.y_pos = pos[1]
         self.font = font
         self.foreground = foreground
         self.background = background
@@ -99,6 +99,22 @@ class Button():
         else:
             new_bg.a = 20
         self.surface = self.font.render(self.text_input, True, self.foreground, new_bg)
+
+class ContextMenu():
+
+    def __init__(self, pos, font, text_input, foreground, background):
+        self.x_pos = pos[0]
+        self.y_pos = pos[1]
+        self.font = font
+        self.foreground = foreground
+        self.background = background
+        self.text_input = text_input
+        self.surface = self.font.render(self.text_input, True, foreground, background)
+        self.rect = self.surface.get_rect(center=(self.x_pos, self.y_pos))
+
+    def update(self, screen):
+        screen.blit(self.surface, self.rect)
+
 
 
 ########################################################
@@ -163,6 +179,7 @@ class Coin(pg.sprite.Sprite):
         self.rect.topleft = (x, y)
         self.anchor_pos = pg.math.Vector2(x, y)
         self.pos = pg.math.Vector2(x, y)
+        self.mask = pg.mask.from_surface(self.image)
 
     def update(self):
         t = pg.time.get_ticks() / 1000.0
@@ -376,6 +393,21 @@ def win_screen():
                 return
             
 
+
+def reset_level_state(coins, cx, cy):
+    coins.empty()
+    match level:
+        case 1:
+            coins.add(Coin(cx - 90, cy - 90))
+            coins.add(Coin(cx - 50, cy - 50))
+        case 2:
+            coins.add(Coin(cx - 90, cy - 90))
+            coins.add(Coin(cx - 50, cy - 50))
+        case 3:
+            coins.add(Coin(cx - 90, cy - 90))
+            coins.add(Coin(cx - 50, cy - 50))
+        case 4:
+            coins.add(Coin(cx - 90, cy - 90))
 ########################################################
 # Game loop
 ########################################################
@@ -449,6 +481,7 @@ def game_loop():
             enemies.add(SinEnemy(cx-295, cy - 125, 3, 190, 0,'y'))
             enemies.add(SinEnemy(cx-355, cy - 125, 3, 190, 1,'y'))
         case 3:
+
             pass
         case 4:
             enemies.add(SquareEnemy(cx- 75, cy+30, 1.3, 90, 0.1, clockwise=True))
@@ -472,8 +505,28 @@ def game_loop():
         
 
     # Spawn coin
-    coin = Coin(cx, cy)
-    allsprites = pg.sprite.Group((player, coin))
+    
+    coins = pg.sprite.Group()
+    match level:
+        case 1:
+            coins.add(Coin(cx - 90, cy - 90))
+            coins.add(Coin(cx - 50, cy - 50))
+        case 2:
+            coins.add(Coin(cx - 90, cy - 90))
+            coins.add(Coin(cx - 50, cy - 50))
+        case 3:
+            coins.add(Coin(cx - 90, cy - 90))
+            coins.add(Coin(cx - 50, cy - 50))
+        case 4:
+            coins.add(Coin(cx - 90, cy - 90))
+        case 5:
+            pass
+    LevelFunctions.assert_correct_coin_count(coins, level)
+    
+
+
+    player_group = pg.sprite.Group((player))
+    
 
     # Main game loop
     running = True
@@ -482,6 +535,7 @@ def game_loop():
         #cooldown timer for death counter and coin counter
         if cooldownTimer > 0:
             cooldownTimer -= dt
+
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 pg.quit()
@@ -491,33 +545,58 @@ def game_loop():
         if keys[pg.K_m]:
             return True  # back to menu
 
-        if player.dead:
-            player.respawn(player_spawn)
 
         screen.fill(LevelFunctions.BACKGROUND_COLOR)
         screen.blit(newBg, (0, 0))
 
         player.update(dt, allwalls)
-        coin.update()
+        coins.update()
 
         
         enemies.update()
         enemies.draw(screen)
        
-        allsprites.draw(screen)
+        player_group.draw(screen)
+        coins.draw(screen)
+
+        # Draw coin counter
+        display_coins = ContextMenu((cx - 400, cy - 300), get_font(25), f'Coins: {LevelFunctions.num_coins_left_in_level(coins, level)}', pg.Color(0,0,0), None)
+        display_coins.update(screen)
 
         # Check enemy collisions
         for enemy in enemies:
             if pg.sprite.collide_mask(player, enemy)and cooldownTimer <=0 :
-                numDeaths+=1
-                player.dead = True
+                numDeaths += 1
                 cooldownTimer = 1.0
-                break
+                player.respawn(player_spawn)
+                reset_level_state(coins, cx, cy)
 
+
+                coins.empty()
+                match level:
+                    case 1:
+                        coins.add(Coin(cx - 90, cy - 90))
+                        coins.add(Coin(cx - 50, cy - 50))
+                    case 2:
+                        coins.add(Coin(cx - 90, cy - 90))
+                        coins.add(Coin(cx - 50, cy - 50))
+                    case 3:
+                        coins.add(Coin(cx - 90, cy - 90))
+                        coins.add(Coin(cx - 50, cy - 50))
+                    case 4:
+                        coins.add(Coin(cx - 90, cy - 90))
+                    case 5:
+                        pass
+                break
+        
+        cc = pg.sprite.spritecollideany(player, coins, pg.sprite.collide_mask)
+        if cc:
+            coins.remove(cc)
+        
         #Check for Finish area collisions
         if(safeRT):
             # DEBUG: pg.draw.rect(newBg, pg.Color(255,255,0), safeRT.rect)
-            if(safeRT.rect.colliderect(player.rect)and cooldownTimer <=0 ):
+            if(safeRT.rect.colliderect(player.rect)and cooldownTimer <=0 and len(coins) == 0):
                 level += 1
                 print(f'Send to new level {level}!')
                 cooldownTimer = 1.0
@@ -533,11 +612,11 @@ def game_loop():
         font = get_font(20)
         
         DeathCounterUI = UIRect(
-            pos=(screen.get_width() / 2-300, screen.get_height() / 2-300),
+            pos=((screen.get_width() / 2 )+300, (screen.get_height() / 2) + 300),
             font=font,
             text_input=f'Death Count: {numDeaths}',
             foreground=pg.Color(0, 0, 0),
-            background=pg.Color(255, 255, 255, 50)
+            background=None
         )
         DeathCounterUI.update(screen)
 

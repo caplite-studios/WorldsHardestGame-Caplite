@@ -155,15 +155,21 @@ class Enemy(pg.sprite.Sprite):
 
 class SinEnemy(Enemy):
 
-    def __init__(self, x, y, frequency, amplitude, delay):
+    def __init__(self, x, y, frequency, amplitude, delay,dir):
         super().__init__(x, y)
         self.amplitude = amplitude
         self.delay = delay
         self.frequency = frequency
+        self.dir = dir 
 
     def update(self):
         t = pg.time.get_ticks() / 1000.0
-        self.pos = pg.Vector2(self.anchor_pos.x + math.sin((t - self.delay) * self.frequency) * self.amplitude, self.anchor_pos.y)
+        if(self.dir =='x'):
+            self.pos = pg.Vector2(self.anchor_pos.x + math.sin((t - self.delay) * self.frequency) * self.amplitude, self.anchor_pos.y)
+        elif(self.dir =='y'):
+            self.pos = pg.Vector2(self.anchor_pos.x, self.anchor_pos.y+ math.sin((t - self.delay) * self.frequency) * self.amplitude)
+        else:
+            raise ValueError("Incorrect direction given (x or y)!")
         self.rect.topleft = (int(self.pos.x), int(self.pos.y))
 
 
@@ -174,7 +180,10 @@ def game_loop():
     dt = clock.tick(60) / 1000
 
     # Build level background and walls
+    
     rectsOnScreen = LevelFunctions.convertImageToScreen(screen, './assets/level_two.png')
+
+
     newBg = pg.Surface(screen.get_size()).convert()
     newBg.fill(pg.Color(177, 172, 255))
 
@@ -202,10 +211,10 @@ def game_loop():
     cx, cy = screen.get_width() / 2, screen.get_height() / 2
     match LEVEL:
         case 1:
-            lvl1Enemies.add(SinEnemy(cx - 25, cy + 45, 3, 270, 0))
-            lvl1Enemies.add(SinEnemy(cx - 25, cy - 15, 3, 270, 1))
-            lvl1Enemies.add(SinEnemy(cx - 25, cy - 75, 3, 270, 0))
-            lvl1Enemies.add(SinEnemy(cx - 25, cy - 135, 3, 270, 1))
+            lvl1Enemies.add(SinEnemy(cx - 25, cy + 45, 3, 270, 0,'x'))
+            lvl1Enemies.add(SinEnemy(cx - 25, cy - 15, 3, 270, 1,'x'))
+            lvl1Enemies.add(SinEnemy(cx - 25, cy - 75, 3, 270, 0,'x'))
+            lvl1Enemies.add(SinEnemy(cx - 25, cy - 135, 3, 270, 1,'x'))
         case _:
             raise ValueError("NO LEVEL SELECTED")
 

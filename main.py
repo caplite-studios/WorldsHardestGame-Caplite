@@ -6,7 +6,11 @@ import LevelFunctions
 ########################################################
 # Define global variables
 ########################################################
-LEVEL = 1
+level = 1
+currentLevelSafeArea: tuple[pg.math.Vector2, pg.math.Vector2] = tuple[pg.math.Vector2(0,0),pg.math.Vector2(1,1)] 
+listOfSafeAreaBoxes: list[pg.math.Vector2] = []
+safeRectTransition = None
+rectsOnScreen = []
 PLAYER_COLOR = pg.Color(251, 3, 1)
 SPEED_INT = 4
 PLAYER_SPEED = SPEED_INT * 100
@@ -21,6 +25,7 @@ screen = pg.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 clock = pg.time.Clock()
 background = pg.Surface(screen.get_size()).convert()
 background.fill(LevelFunctions.BACKGROUND_COLOR)
+pg.display.set_caption("Worlds Most Game")
 
 screen.blit(background, (0, 0))
 pg.display.flip()
@@ -33,9 +38,20 @@ def get_font(size):
     return pg.font.SysFont('comicsansms', size)
 
 
+
 ########################################################
 # System utils
 ########################################################
+
+class LevelTransition():
+    def __init__(self,currentLevel,rect):
+        pg.sprite.Sprite.__init__(self)
+        self.rect = rect
+        self.pos = pg.Vector2(self.rect.left, self.rect.top)
+        self.currentLevel= currentLevel
+
+
+
 class Button():
 
     def __init__(self, pos, font, text_input, foreground, background):
@@ -172,20 +188,51 @@ class SinEnemy(Enemy):
             raise ValueError("Incorrect direction given (x or y)!")
         self.rect.topleft = (int(self.pos.x), int(self.pos.y))
 
-
+def SetUpLevel(level):
+    global rectsOnScreen
+    match level:
+        case 1:
+            listOfSafeAreaBoxes, rectsOnScreen = LevelFunctions.convertImageToScreen(screen, './assets/level1map.png')
+            safeArea = LevelFunctions.getAreaOfBox(listOfSafeAreaBoxes)
+            safeRectTransition = LevelTransition(
+                level,
+                pg.Rect(
+                    safeArea[2].x * LevelFunctions.BG_SQUARE_LENGTH + LevelFunctions.ORIENTATION_OFFSET_X,
+                    safeArea[2].y * LevelFunctions.BG_SQUARE_LENGTH + LevelFunctions.ORIENTATION_OFFSET_Y,
+                    safeArea[0].x * LevelFunctions.BG_SQUARE_LENGTH,
+                    safeArea[0].y * LevelFunctions.BG_SQUARE_LENGTH
+                ))
+            return safeRectTransition
+        case 2:
+            listOfSafeAreaBoxes, rectsOnScreen = LevelFunctions.convertImageToScreen(screen, './assets/level_two.png')
+            safeArea = LevelFunctions.getAreaOfBox(listOfSafeAreaBoxes)
+            safeRectTransition = LevelTransition(
+                level,
+                pg.Rect(
+                    safeArea[2].x * LevelFunctions.BG_SQUARE_LENGTH + LevelFunctions.ORIENTATION_OFFSET_X,
+                    safeArea[2].y * LevelFunctions.BG_SQUARE_LENGTH + LevelFunctions.ORIENTATION_OFFSET_Y,
+                    safeArea[0].x * LevelFunctions.BG_SQUARE_LENGTH,
+                    safeArea[0].y * LevelFunctions.BG_SQUARE_LENGTH
+                ))
+            
+            return safeRectTransition
+        case _:
+            raise ValueError("NO LEVEL SELECTED")
+        
+safeRT = SetUpLevel(level)
 ########################################################
 # Game loop
 ########################################################
+happenOnce = True
 def game_loop():
+    global listOfSafeAreaBoxes, currentLevelSafeArea,happenOnce,level,safeRT
     dt = clock.tick(60) / 1000
 
     # Build level background and walls
     
-    rectsOnScreen = LevelFunctions.convertImageToScreen(screen, './assets/level_two.png')
-
-
     newBg = pg.Surface(screen.get_size()).convert()
     newBg.fill(pg.Color(177, 172, 255))
+
 
     black_tuples = [(color, rect) for color, rect in rectsOnScreen if color == LevelFunctions.BACKGROUND_BLACK]
     walls = list(map(lambda obj: Wall(obj[1]), black_tuples))
@@ -199,24 +246,32 @@ def game_loop():
             player_spawn = pg.Vector2(rect.left, rect.top)
             player.pos = player_spawn.copy()
             player.rect.topleft = (int(player.pos.x), int(player.pos.y))
+            #happenOnce = True
             break
+
 
     # Draw level tiles
     for (color, rect) in rectsOnScreen:
         pg.draw.rect(newBg, color, rect)
     LevelFunctions.cut_walls(newBg, rectsOnScreen)
 
+
     # Create enemies
     lvl1Enemies = pg.sprite.Group()
     cx, cy = screen.get_width() / 2, screen.get_height() / 2
-    match LEVEL:
+    match level:
         case 1:
             lvl1Enemies.add(SinEnemy(cx - 25, cy + 45, 3, 270, 0,'x'))
             lvl1Enemies.add(SinEnemy(cx - 25, cy - 15, 3, 270, 1,'x'))
             lvl1Enemies.add(SinEnemy(cx - 25, cy - 75, 3, 270, 0,'x'))
             lvl1Enemies.add(SinEnemy(cx - 25, cy - 135, 3, 270, 1,'x'))
+
+        case 2:
+            lvl1Enemies.add(SinEnemy(cx - 25, cy - 135, 3, 270, 1,'x'))
+
         case _:
             raise ValueError("NO LEVEL SELECTED")
+        
 
     # Spawn coin
     coin = Coin(cx, cy)
@@ -252,6 +307,15 @@ def game_loop():
             if pg.sprite.collide_mask(player, enemy):
                 player.dead = True
                 break
+
+        #Check for Finish area collisions
+        if(safeRT):
+            pg.draw.rect(newBg, pg.Color(255,255,0), safeRT.rect)
+            if(safeRT.rect.colliderect(player.rect)and happenOnce ):
+                level += 1
+                print(f'Send to new level {level}!')
+                safeRT = SetUpLevel(level)
+                return game_loop()
 
         pg.display.flip()
         dt = clock.tick(60) / 1000
@@ -294,3 +358,4 @@ def main_menu():
 
 
 main_menu()
+

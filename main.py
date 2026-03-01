@@ -310,7 +310,7 @@ def game_loop():
 
         #Check for Finish area collisions
         if(safeRT):
-            pg.draw.rect(newBg, pg.Color(255,255,0), safeRT.rect)
+            #pg.draw.rect(newBg, pg.Color(0,0,0,0), safeRT.rect)
             if(safeRT.rect.colliderect(player.rect)and happenOnce ):
                 level += 1
                 print(f'Send to new level {level}!')

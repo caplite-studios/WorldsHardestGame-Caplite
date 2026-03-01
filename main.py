@@ -2,43 +2,67 @@ import os
 import pygame as pg
 import math
 import LevelFunctions
+
 ########################################################
-# Define global variables 
+# Define global variables
 ########################################################
 LEVEL = 1
-PLAYER_COLOR = pg.Color(251,3,1)
+PLAYER_COLOR = pg.Color(251, 3, 1)
 SPEED_INT = 4
 PLAYER_SPEED = SPEED_INT * 100
 SCREEN_WIDTH = 1440
 SCREEN_HEIGHT = SCREEN_WIDTH
 
 ########################################################
-# Setting up screen display  
+# Setting up screen display
 ########################################################
 pg.init()
-screen = pg.display.set_mode((1440, 1440))
+screen = pg.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 clock = pg.time.Clock()
-running = True
-dt = 0
-player_spawn = pg.Vector2(0,0)
-playerSpawned = False
-# Define the background
 background = pg.Surface(screen.get_size()).convert()
 background.fill(LevelFunctions.BACKGROUND_COLOR)
 
-
-# Render blank background while loading happens
 screen.blit(background, (0, 0))
 pg.display.flip()
-
 
 main_dir = os.path.split(os.path.abspath(__file__))[0]
 assets_dir = os.path.join(main_dir, "assets")
 
 
+def get_font(size):
+    return pg.font.SysFont('comicsansms', size)
+
 
 ########################################################
-# Define our player sprites
+# System utils
+########################################################
+class Button():
+
+    def __init__(self, pos, font, text_input, foreground, background):
+        self.x_pos = pos[1]
+        self.y_pos = pos[0]
+        self.font = font
+        self.foreground = foreground
+        self.background = background
+        self.text_input = text_input
+        self.surface = self.font.render(self.text_input, True, foreground, background)
+        self.rect = self.surface.get_rect(center=(self.x_pos, self.y_pos))
+
+    def update(self, screen):
+        screen.blit(self.surface, (self.x_pos, self.y_pos))
+
+    def change_color(self, pos):
+        x, y = pos
+        new_bg = self.background
+        if x in range(self.rect.left, self.rect.right) and y in range(self.rect.top, self.rect.bottom):
+            new_bg.a = 100
+        else:
+            new_bg.a = 20
+        self.surface = self.font.render(self.text_input, True, self.foreground, new_bg)
+
+
+########################################################
+# Define our sprites
 ########################################################
 class Player(pg.sprite.Sprite):
 
@@ -48,11 +72,9 @@ class Player(pg.sprite.Sprite):
         self.rect.topleft = (x, y)
         self.pos = pg.math.Vector2(x, y)
         self.velocity = pg.math.Vector2(0, 0)
-    
-    def update(self, dt, walls):
 
-        # set the player movement vector to zero before handling inputs
-        self.velocity = pg.Vector2(0,0)
+    def update(self, dt, walls):
+        self.velocity = pg.Vector2(0, 0)
         keys = pg.key.get_pressed()
         if keys[pg.K_w]:
             self.velocity.y -= 1
@@ -62,8 +84,7 @@ class Player(pg.sprite.Sprite):
             self.velocity.x -= 1
         if keys[pg.K_d]:
             self.velocity.x += 1
-        #when movement vector greater than 1 (for diagonals)
-        if (self.velocity.length() > 1):
+        if self.velocity.length() > 1:
             self.velocity.normalize_ip()
 
         # Move X axis then resolve collisions
@@ -86,6 +107,7 @@ class Player(pg.sprite.Sprite):
                 self.rect.top = wall.rect.bottom
             self.pos.y = self.rect.y
 
+
 class Coin(pg.sprite.Sprite):
 
     def __init__(self, x, y):
@@ -100,11 +122,13 @@ class Coin(pg.sprite.Sprite):
         self.pos = pg.Vector2(self.anchor_pos.x, self.anchor_pos.y + math.sin(t * 2.5) * 15)
         self.rect.topleft = (int(self.pos.x), int(self.pos.y))
 
+
 class Wall(pg.sprite.Sprite):
     def __init__(self, rect):
         pg.sprite.Sprite.__init__(self)
         self.image = pg.Surface((rect.width, rect.height))
         self.rect = rect.copy()
+
 
 class Enemy(pg.sprite.Sprite):
 
@@ -114,134 +138,130 @@ class Enemy(pg.sprite.Sprite):
         self.image, self.rect = LevelFunctions.load_image('enemy.png', 1, (48, 48))
         self.pos = pg.Vector2(x, y)
         self.rect.topleft = (int(self.pos.x), int(self.pos.y))
-        
+
     def update(self):
         t = pg.time.get_ticks() / 1000.0
-        self.pos = pg.Vector2(self.anchor_pos.x +  math.sin(t * 3) * 300, self.anchor_pos.y )
+        self.pos = pg.Vector2(self.anchor_pos.x + math.sin(t * 3) * 300, self.anchor_pos.y)
         self.rect.topleft = (int(self.pos.x), int(self.pos.y))
+
 
 class SinEnemy(Enemy):
 
-    def __init__(self, x, y,frequency,amplitude,delay): 
-        super().__init__(x,y)
+    def __init__(self, x, y, frequency, amplitude, delay):
+        super().__init__(x, y)
         self.amplitude = amplitude
-        self.delay = delay  
+        self.delay = delay
         self.frequency = frequency
-    
-    #Override 
+
     def update(self):
         t = pg.time.get_ticks() / 1000.0
-        self.pos = pg.Vector2(self.anchor_pos.x +  math.sin((t-(self.delay)) * self.frequency) * self.amplitude, self.anchor_pos.y )
+        self.pos = pg.Vector2(self.anchor_pos.x + math.sin((t - self.delay) * self.frequency) * self.amplitude, self.anchor_pos.y)
         self.rect.topleft = (int(self.pos.x), int(self.pos.y))
 
 
-
-
-# get all rectangles on screen from the pixel art image 
-rectsOnScreen = LevelFunctions.convertImageToScreen(screen,'./assets/level1map.png')
-newBg = pg.Surface(screen.get_size()).convert()
-newBg.fill(LevelFunctions.BACKGROUND_COLOR)
-
-for (color, rect) in rectsOnScreen:
-    pg.draw.rect(newBg, color, rect)
-
-black_tuples = [(color, rect) for color, rect in rectsOnScreen if color == LevelFunctions.BACKGROUND_BLACK]
-
-walls = list(map(lambda obj: Wall(obj[1]), black_tuples))
-
-lvl1Enemies = pg.sprite.Group()
- 
-player = Player(screen.get_width()/2,screen.get_height()/2)   
-match LEVEL:
-    case 1: 
-        #create enemies and create level 
-        enemy1 = SinEnemy(screen.get_width()/2 - 25, screen.get_height()/2 + 45,3,270,0)
-        enemy2 = SinEnemy(screen.get_width()/2 - 25, screen.get_height()/2 -15,3,270,1)
-        enemy3 = SinEnemy(screen.get_width()/2 - 25, screen.get_height()/2 -75,3,270,0)
-        enemy4 = SinEnemy(screen.get_width()/2 - 25, screen.get_height()/2 -135,3,270,1)
-        # get all rectangles on screen from the pixel art image 
-        lvl1Enemies.add(enemy1)
-        lvl1Enemies.add(enemy2)
-        lvl1Enemies.add(enemy3)
-        lvl1Enemies.add(enemy4)
-        
-        rectsOnScreen = LevelFunctions.convertImageToScreen(screen,'./assets/level1map.png')
-        newBg = pg.Surface(screen.get_size()).convert()
-        newBg.fill(pg.Color(177,172,255))
-
-        for (color, rect) in rectsOnScreen:
-            if(color == LevelFunctions.SAFE_AREA_COLOR and not playerSpawned):
-                print("SAFE AREA FOUND")
-                playerSpawned = True
-                player.pos = pg.Vector2(rect.left, rect.top)
-
-                #TODO add wall logic call 
-                
-            pg.draw.rect(newBg, color, rect)
-
-
-        
-    case _ :
-        raise "NO LEVEL SELECTED"
-
-rectsOnScreen = LevelFunctions.convertImageToScreen(screen,'./assets/level1map.png')
-LevelFunctions.cut_walls(newBg, rectsOnScreen)
 ########################################################
-# Initialize Sprites
+# Game loop
 ########################################################
+def game_loop():
+    dt = clock.tick(60) / 1000
+
+    # Build level background and walls
+    rectsOnScreen = LevelFunctions.convertImageToScreen(screen, './assets/level_two.png')
+    newBg = pg.Surface(screen.get_size()).convert()
+    newBg.fill(pg.Color(177, 172, 255))
+
+    black_tuples = [(color, rect) for color, rect in rectsOnScreen if color == LevelFunctions.BACKGROUND_BLACK]
+    walls = list(map(lambda obj: Wall(obj[1]), black_tuples))
+    allwalls = pg.sprite.Group(walls)
+
+    # Spawn player at first safe area
+    player = Player(screen.get_width() / 2, screen.get_height() / 2)
+    for (color, rect) in rectsOnScreen:
+        if color == LevelFunctions.SAFE_AREA_COLOR:
+            player.pos = pg.Vector2(rect.left, rect.top)
+            break
+
+    # Draw level tiles
+    for (color, rect) in rectsOnScreen:
+        pg.draw.rect(newBg, color, rect)
+    LevelFunctions.cut_walls(newBg, rectsOnScreen)
+
+    # Create enemies
+    lvl1Enemies = pg.sprite.Group()
+    cx, cy = screen.get_width() / 2, screen.get_height() / 2
+    match LEVEL:
+        case 1:
+            lvl1Enemies.add(SinEnemy(cx - 25, cy + 45, 3, 270, 0))
+            lvl1Enemies.add(SinEnemy(cx - 25, cy - 15, 3, 270, 1))
+            lvl1Enemies.add(SinEnemy(cx - 25, cy - 75, 3, 270, 0))
+            lvl1Enemies.add(SinEnemy(cx - 25, cy - 135, 3, 270, 1))
+        case _:
+            raise ValueError("NO LEVEL SELECTED")
+
+    # Spawn coin
+    coin = Coin(cx, cy)
+    allsprites = pg.sprite.Group((player, coin))
+
+    # Main game loop
+    running = True
+    while running:
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                pg.quit()
+                return False
+
+        keys = pg.key.get_pressed()
+        if keys[pg.K_m]:
+            return True  # back to menu
+
+        screen.fill(LevelFunctions.BACKGROUND_COLOR)
+        screen.blit(newBg, (0, 0))
+
+        player.update(dt, allwalls)
+        coin.update()
+
+        lvl1Enemies.update()
+        lvl1Enemies.draw(screen)
+        allsprites.draw(screen)
+
+        pg.display.flip()
+        dt = clock.tick(60) / 1000
+
+    return False
 
 
-# spawns coin in the center of the screen
-coin = Coin(screen.get_width()/2, screen.get_height()/2)
-
-
-# group all sprites together
-allsprites = pg.sprite.Group((player, coin))
-
-
-allwalls = pg.sprite.Group()
-for wall in walls:
-    allwalls.add(wall)
-    
 ########################################################
-#GAME LOOP
+# Main menu
 ########################################################
-while running:
-    # fill the screen with a color to wipe away anything from last frame
-    screen.fill(LevelFunctions.BACKGROUND_COLOR)
-    
+def main_menu():
+    font = get_font(30)
+    while True:
+        screen.blit(background, (0, 0))
+        menu_mouse_pos = pg.mouse.get_pos()
 
-    # poll for events
-    # pygame.QUIT event means the user clicked red X to close your window
-    for event in pg.event.get():
-        if event.type == pg.QUIT:
-            running = False
-    
-    keys = pg.key.get_pressed()
-    if keys[pg.K_m]:
-        running = False
+        play_button = Button(
+            pos=(screen.get_width() / 2, screen.get_height() / 2),
+            font=font,
+            text_input="Play",
+            foreground=pg.Color(0, 0, 0),
+            background=pg.Color(255, 255, 255, 50)
+        )
 
-    screen.blit(newBg,(0,0))
-    #Update and Draw All Walls group
+        play_button.change_color(menu_mouse_pos)
+        play_button.update(screen)
+        pg.display.flip()
 
-    #update player and coin separate (even though they share group)
-    player.update(dt, allwalls)
-    coin.update()
-
-    #Update and Draw LVL 1 Enemies Group
-    lvl1Enemies.update()
-    lvl1Enemies.draw(screen)
-
-    #Update and Draw All Sprites group (player and coin)
-    allsprites.draw(screen)
-
-
-    # flip() the display to put your work on screen
-    pg.display.flip()
-
-    # limits FPS to 60
-    # independent physics.
-    dt = clock.tick(60) / 1000 # dt is delta time in seconds since last frame, used for framerate-
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                pg.quit()
+                return
+            if event.type == pg.MOUSEBUTTONDOWN:
+                if play_button.rect.collidepoint(menu_mouse_pos):
+                    if not game_loop():
+                        return
+            if event.type == pg.KEYDOWN and event.key == pg.K_m:
+                pg.quit()
+                return
 
 
-pg.quit()
+main_menu()

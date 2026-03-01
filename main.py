@@ -6,7 +6,7 @@ import LevelFunctions
 ########################################################
 # Define global variables
 ########################################################
-LEVEL = 1
+LEVEL = 2
 PLAYER_COLOR = pg.Color(251, 3, 1)
 SPEED_INT = 4
 PLAYER_SPEED = SPEED_INT * 100
@@ -207,14 +207,23 @@ def game_loop():
     LevelFunctions.cut_walls(newBg, rectsOnScreen)
 
     # Create enemies
-    lvl1Enemies = pg.sprite.Group()
+
+    enemies = pg.sprite.Group()
     cx, cy = screen.get_width() / 2, screen.get_height() / 2
     match LEVEL:
         case 1:
-            lvl1Enemies.add(SinEnemy(cx - 25, cy + 45, 3, 270, 0,'x'))
-            lvl1Enemies.add(SinEnemy(cx - 25, cy - 15, 3, 270, 1,'x'))
-            lvl1Enemies.add(SinEnemy(cx - 25, cy - 75, 3, 270, 0,'x'))
-            lvl1Enemies.add(SinEnemy(cx - 25, cy - 135, 3, 270, 1,'x'))
+            enemies.add(SinEnemy(cx - 25, cy + 45, 3, 270, 0,'x'))
+            enemies.add(SinEnemy(cx - 25, cy - 15, 3, 270, 1,'x'))
+            enemies.add(SinEnemy(cx - 25, cy - 75, 3, 270, 0,'x'))
+            enemies.add(SinEnemy(cx - 25, cy - 135, 3, 270, 1,'x'))
+        case 2:
+            # 60 is the change between cx
+            offset = 353
+            alternator = 0;
+            for i in range(0,9):
+                enemies.add(SinEnemy(cx - offset, cy - 135, 3.25, 180, alternator, 'y'))
+                offset -= 60
+                alternator = 1 - alternator
         case _:
             raise ValueError("NO LEVEL SELECTED")
 
@@ -243,15 +252,19 @@ def game_loop():
         player.update(dt, allwalls)
         coin.update()
 
-        lvl1Enemies.update()
-        lvl1Enemies.draw(screen)
+        
+        enemies.update()
+        enemies.draw(screen)
+       
         allsprites.draw(screen)
 
         # Check enemy collisions
-        for enemy in lvl1Enemies:
+        for enemy in enemies:
             if pg.sprite.collide_mask(player, enemy):
                 player.dead = True
                 break
+        
+        
 
         pg.display.flip()
         dt = clock.tick(60) / 1000

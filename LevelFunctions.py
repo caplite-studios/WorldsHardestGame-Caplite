@@ -135,3 +135,22 @@ def getAreaOfBox(listOfSafeAreaBoxes: list[pg.math.Vector2])->list:
     bottomRight = pg.math.Vector2(max_x,max_y)
     size =pg.math.Vector2(1+ (max_x - min_x), 1+ (max_y-min_y))
     return [size,bottomRight,topLeft]
+
+def level_coins(level):
+    match level:
+        case 1:
+            return 2
+        case 2:
+            return 2
+        case 3:
+            return 2
+        case _:
+            raise ValueError("Level does not support coins")
+        
+def assert_correct_coin_count(coin_group, level):
+    if level_coins(level) != len(coin_group.sprites()):
+        raise ValueError("Expected a different number of coins to render for this level")
+    
+def num_coins_left_in_level(coin_group, level):
+    return level_coins(level) - len(coin_group)
+

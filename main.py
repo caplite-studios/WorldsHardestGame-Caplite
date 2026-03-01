@@ -55,8 +55,8 @@ class LevelTransition():
 class Button():
 
     def __init__(self, pos, font, text_input, foreground, background):
-        self.x_pos = pos[1]
-        self.y_pos = pos[0]
+        self.x_pos = pos[0]
+        self.y_pos = pos[1]
         self.font = font
         self.foreground = foreground
         self.background = background
@@ -75,6 +75,22 @@ class Button():
         else:
             new_bg.a = 20
         self.surface = self.font.render(self.text_input, True, self.foreground, new_bg)
+
+class ContextMenu():
+
+    def __init__(self, pos, font, text_input, foreground, background):
+        self.x_pos = pos[0]
+        self.y_pos = pos[1]
+        self.font = font
+        self.foreground = foreground
+        self.background = background
+        self.text_input = text_input
+        self.surface = self.font.render(self.text_input, True, foreground, background)
+        self.rect = self.surface.get_rect(center=(self.x_pos, self.y_pos))
+
+    def update(self, screen):
+        screen.blit(self.surface, self.rect)
+
 
 
 ########################################################
@@ -139,6 +155,7 @@ class Coin(pg.sprite.Sprite):
         self.rect.topleft = (x, y)
         self.anchor_pos = pg.math.Vector2(x, y)
         self.pos = pg.math.Vector2(x, y)
+        self.mask = pg.mask.from_surface(self.image)
 
     def update(self):
         t = pg.time.get_ticks() / 1000.0
@@ -355,18 +372,35 @@ def game_loop():
             enemies.add(SinEnemy(cx - 25, cy - 135, 3, 270, 1,'x'))
 
         case 3:
-            pass
+            pass # TODO: implement enemies
         case _:
             raise ValueError("NO LEVEL SELECTED")
         
 
     # Spawn coin
-    coin = Coin(cx, cy)
-    allsprites = pg.sprite.Group((player, coin))
+    
+    coins = pg.sprite.Group()
+    match level:
+        case 1:
+            coins.add(Coin(cx - 90, cy - 90))
+            coins.add(Coin(cx - 50, cy - 50))
+        case 2:
+            coins.add(Coin(cx - 90, cy - 90))
+            coins.add(Coin(cx - 50, cy - 50))
+        case 3:
+            coins.add(Coin(cx - 90, cy - 90))
+            coins.add(Coin(cx - 50, cy - 50))
+    LevelFunctions.assert_correct_coin_count(coins, level)
+    
+
+
+    player_group = pg.sprite.Group((player))
+    
 
     # Main game loop
     running = True
     while running:
+
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 pg.quit()
@@ -383,24 +417,44 @@ def game_loop():
         screen.blit(newBg, (0, 0))
 
         player.update(dt, allwalls)
-        coin.update()
+        coins.update()
 
         
         enemies.update()
         enemies.draw(screen)
        
-        allsprites.draw(screen)
+        player_group.draw(screen)
+        coins.draw(screen)
+
+        # Draw coin counter
+        display_coins = ContextMenu((cx - 400, cy - 300), get_font(25), f'Coins: {LevelFunctions.num_coins_left_in_level(coins, level)}', pg.Color(0,0,0), None)
+        display_coins.update(screen)
 
         # Check enemy collisions
         for enemy in enemies:
             if pg.sprite.collide_mask(player, enemy):
                 player.dead = True
+                coins.empty()
+                match level:
+                    case 1:
+                        coins.add(Coin(cx - 90, cy - 90))
+                        coins.add(Coin(cx - 50, cy - 50))
+                    case 2:
+                        coins.add(Coin(cx - 90, cy - 90))
+                        coins.add(Coin(cx - 50, cy - 50))
+                    case 3:
+                        coins.add(Coin(cx - 90, cy - 90))
+                        coins.add(Coin(cx - 50, cy - 50))
                 break
-
+        
+        cc = pg.sprite.spritecollideany(player, coins, pg.sprite.collide_mask)
+        if cc:
+            coins.remove(cc)
+        
         #Check for Finish area collisions
         if(safeRT):
             # DEBUG: pg.draw.rect(newBg, pg.Color(255,255,0), safeRT.rect)
-            if(safeRT.rect.colliderect(player.rect)and happenOnce ):
+            if(safeRT.rect.colliderect(player.rect) and happenOnce and len(coins) == 0):
                 level += 1
                 print(f'Send to new level {level}!')
                 safeRT = SetUpLevel(level)

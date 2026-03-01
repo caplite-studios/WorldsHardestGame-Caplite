@@ -6,7 +6,7 @@ import LevelFunctions
 ########################################################
 # Define global variables
 ########################################################
-LEVEL = 2
+LEVEL = 3
 PLAYER_COLOR = pg.Color(251, 3, 1)
 SPEED_INT = 4
 PLAYER_SPEED = SPEED_INT * 100
@@ -68,7 +68,7 @@ class Player(pg.sprite.Sprite):
 
     def __init__(self, x, y):
         pg.sprite.Sprite.__init__(self)
-        self.image, self.rect = LevelFunctions.load_image('Character.png', 1, (48, 48))
+        self.image, self.rect = LevelFunctions.load_image('Character.png', 1, (40, 40))
         self.rect.topleft = (x, y)
         self.pos = pg.math.Vector2(x, y)
         self.velocity = pg.math.Vector2(0, 0)
@@ -119,7 +119,7 @@ class Coin(pg.sprite.Sprite):
 
     def __init__(self, x, y):
         pg.sprite.Sprite.__init__(self)
-        self.image, self.rect = LevelFunctions.load_image('coin.png', 1, (48, 48))
+        self.image, self.rect = LevelFunctions.load_image('coin.png', 1, (32, 32))
         self.rect.topleft = (x, y)
         self.anchor_pos = pg.math.Vector2(x, y)
         self.pos = pg.math.Vector2(x, y)
@@ -142,7 +142,7 @@ class Enemy(pg.sprite.Sprite):
     def __init__(self, x, y):
         pg.sprite.Sprite.__init__(self)
         self.anchor_pos = pg.math.Vector2(x, y)
-        self.image, self.rect = LevelFunctions.load_image('enemy.png', 1, (48, 48))
+        self.image, self.rect = LevelFunctions.load_image('enemy.png', 1, (32, 32))
         self.mask = pg.mask.from_surface(self.image)
         self.pos = pg.Vector2(x, y)
         self.rect.topleft = (int(self.pos.x), int(self.pos.y))
@@ -173,6 +173,73 @@ class SinEnemy(Enemy):
         self.rect.topleft = (int(self.pos.x), int(self.pos.y))
 
 
+class LinearEnemy(Enemy):
+
+    def __init__(self, x, y, frequency, amplitude, delay, dir):
+        super().__init__(x, y)
+        self.amplitude = amplitude
+        self.delay = delay
+        self.frequency = frequency
+        self.dir = dir
+
+    def update(self):
+        t = pg.time.get_ticks() / 1000.0
+        progress = ((t - self.delay) * self.frequency) % 2.0
+        if progress > 1.0:
+            progress = 2.0 - progress
+        offset = (progress * 2 - 1) * self.amplitude
+        if self.dir == 'x':
+            self.pos = pg.Vector2(self.anchor_pos.x + offset, self.anchor_pos.y)
+        elif self.dir == 'y':
+            self.pos = pg.Vector2(self.anchor_pos.x, self.anchor_pos.y + offset)
+        else:
+            raise ValueError("Incorrect direction given (x or y)!")
+        self.rect.topleft = (int(self.pos.x), int(self.pos.y))
+
+
+class SquareEnemy(Enemy):
+
+    def __init__(self, x, y, frequency, amplitude, delay, clockwise=True):
+        super().__init__(x, y)
+        self.amplitude = amplitude
+        self.delay = delay
+        self.frequency = frequency
+        self.clockwise = clockwise
+
+    def update(self):
+        t = pg.time.get_ticks() / 1000.0
+        progress = ((t - self.delay) * self.frequency) % 4.0
+        a = self.amplitude
+        if self.clockwise: 
+            if progress < 1.0:
+                x_offset = -a + progress * 2 * a
+                y_offset = -a
+            elif progress < 2.0:
+                x_offset = a
+                y_offset = -a + (progress - 1.0) * 2 * a
+            elif progress < 3.0:
+                x_offset = a - (progress - 2.0) * 2 * a
+                y_offset = a
+            else:
+                x_offset = -a
+                y_offset = a - (progress - 3.0) * 2 * a
+        else:
+            if progress < 1.0:
+                x_offset = -a + progress * 2 * a
+                y_offset = a
+            elif progress < 2.0:
+                x_offset = a
+                y_offset = a - (progress - 1.0) * 2 * a
+            elif progress < 3.0:
+                x_offset = a - (progress - 2.0) * 2 * a
+                y_offset = -a
+            else:
+                x_offset = -a
+                y_offset = -a + (progress - 3.0) * 2 * a
+        self.pos = pg.Vector2(self.anchor_pos.x + x_offset, self.anchor_pos.y + y_offset)
+        self.rect.topleft = (int(self.pos.x), int(self.pos.y))
+
+
 ########################################################
 # Game loop
 ########################################################
@@ -181,7 +248,7 @@ def game_loop():
 
     # Build level background and walls
     
-    rectsOnScreen = LevelFunctions.convertImageToScreen(screen, './assets/level_two.png')
+    rectsOnScreen = LevelFunctions.convertImageToScreen(screen, './assets/level1map.png')
 
 
     newBg = pg.Surface(screen.get_size()).convert()
@@ -224,6 +291,9 @@ def game_loop():
                 enemies.add(SinEnemy(cx - offset, cy - 135, 3.25, 180, alternator, 'y'))
                 offset -= 60
                 alternator = 1 - alternator
+        case 3:
+            enemies.add(LinearEnemy(cx, cy, 1, 100, 0, 'x'))
+            enemies.add(SquareEnemy(cx, cy, .24, 100, 0))
         case _:
             raise ValueError("NO LEVEL SELECTED")
 

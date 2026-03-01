@@ -106,29 +106,14 @@ class Wall(pg.sprite.Sprite):
         self.image = pg.Surface((rect.width, rect.height))
         self.rect = rect.copy()
 
-
-# get all rectangles on screen from the pixel art image 
-rectsOnScreen = LevelFunctions.convertImageToScreen(screen,'./assets/level1map.png')
-newBg = pg.Surface(screen.get_size()).convert()
-newBg.fill(LevelFunctions.BACKGROUND_COLOR)
-
-for (color, rect) in rectsOnScreen:
-    pg.draw.rect(newBg, color, rect)
-
-black_tuples = [(color, rect) for color, rect in rectsOnScreen if color == LevelFunctions.BACKGROUND_BLACK]
-
-walls = list(map(lambda obj: Wall(obj[1]), black_tuples))
-
-
-
-
-
 class Enemy(pg.sprite.Sprite):
 
     def __init__(self, x, y):
         pg.sprite.Sprite.__init__(self)
         self.anchor_pos = pg.math.Vector2(x, y)
         self.image, self.rect = LevelFunctions.load_image('enemy.png', 1, (48, 48))
+        self.pos = pg.Vector2(x, y)
+        self.rect.topleft = (int(self.pos.x), int(self.pos.y))
         
     def update(self):
         t = pg.time.get_ticks() / 1000.0
@@ -149,32 +134,48 @@ class SinEnemy(Enemy):
         self.pos = pg.Vector2(self.anchor_pos.x +  math.sin((t-(self.delay)) * self.frequency) * self.amplitude, self.anchor_pos.y )
         self.rect.topleft = (int(self.pos.x), int(self.pos.y))
 
-enemies = []   
+
+
+
+# get all rectangles on screen from the pixel art image 
+rectsOnScreen = LevelFunctions.convertImageToScreen(screen,'./assets/level1map.png')
+newBg = pg.Surface(screen.get_size()).convert()
+newBg.fill(LevelFunctions.BACKGROUND_COLOR)
+
+for (color, rect) in rectsOnScreen:
+    pg.draw.rect(newBg, color, rect)
+
+black_tuples = [(color, rect) for color, rect in rectsOnScreen if color == LevelFunctions.BACKGROUND_BLACK]
+
+walls = list(map(lambda obj: Wall(obj[1]), black_tuples))
+
+lvl1Enemies = pg.sprite.Group()
+ 
 player = Player(screen.get_width()/2,screen.get_height()/2)   
 match LEVEL:
     case 1: 
         #create enemies and create level 
         enemy1 = SinEnemy(screen.get_width()/2 - 25, screen.get_height()/2 + 45,3,270,0)
-        enemy2 = SinEnemy(screen.get_width()/2 - 25, screen.get_height()/2 -10,3,270,1)
-        enemy3 = SinEnemy(screen.get_width()/2 - 25, screen.get_height()/2 -65,3,270,0)
-        enemy4 = SinEnemy(screen.get_width()/2 - 25, screen.get_height()/2 -120,3,270,1)
+        enemy2 = SinEnemy(screen.get_width()/2 - 25, screen.get_height()/2 -15,3,270,1)
+        enemy3 = SinEnemy(screen.get_width()/2 - 25, screen.get_height()/2 -75,3,270,0)
+        enemy4 = SinEnemy(screen.get_width()/2 - 25, screen.get_height()/2 -135,3,270,1)
         # get all rectangles on screen from the pixel art image 
-        enemies.append(enemy1)
-        enemies.append(enemy2)
-        enemies.append(enemy3)
-        enemies.append(enemy4)
+        lvl1Enemies.add(enemy1)
+        lvl1Enemies.add(enemy2)
+        lvl1Enemies.add(enemy3)
+        lvl1Enemies.add(enemy4)
+        
         rectsOnScreen = LevelFunctions.convertImageToScreen(screen,'./assets/level1map.png')
         newBg = pg.Surface(screen.get_size()).convert()
         newBg.fill(pg.Color(177,172,255))
 
-        for (color, rect,(pos_x,pos_y)) in rectsOnScreen:
+        for (color, rect) in rectsOnScreen:
             if(color == LevelFunctions.SAFE_AREA_COLOR and not playerSpawned):
                 print("SAFE AREA FOUND")
                 playerSpawned = True
                 player.pos = pg.Vector2(rect.left, rect.top)
 
                 #TODO add wall logic call 
-
                 
             pg.draw.rect(newBg, color, rect)
 
@@ -194,8 +195,6 @@ coin = Coin(screen.get_width()/2, screen.get_height()/2)
 # group all sprites together
 allsprites = pg.sprite.Group((player, coin))
 
-for i in range(len(enemies)): # add all enemies to sprite group
-    allsprites.add(enemies[i])
 
 allwalls = pg.sprite.Group()
 for wall in walls:
@@ -220,9 +219,17 @@ while running:
         running = False
 
     screen.blit(newBg,(0,0))
+    #Update and Draw All Walls group
+
+    #update player and coin separate (even though they share group)
     player.update(dt, allwalls)
     coin.update()
 
+    #Update and Draw LVL 1 Enemies Group
+    lvl1Enemies.update()
+    lvl1Enemies.draw(screen)
+
+    #Update and Draw All Sprites group (player and coin)
     allsprites.draw(screen)
 
 

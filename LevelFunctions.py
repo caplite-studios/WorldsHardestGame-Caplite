@@ -5,6 +5,7 @@ from PIL import Image
 main_dir = os.path.split(os.path.abspath(__file__))[0]
 assets_dir = os.path.join(main_dir, "assets")
 
+#global variables for colors and dimensions
 
 BACKGROUND_CHECKER_BLUE = pg.Color(224, 218, 254)
 BACKGROUND_CHECKER_WHITE = pg.Color(249, 248, 255)
@@ -13,6 +14,7 @@ BACKGROUND_GREEN = pg.Color(0,230,0)
 BACKGROUND_COLOR = pg.Color(177,172,255)
 BG_SQUARE_LENGTH = 60 
 SAFE_AREA_COLOR = pg.Color(51, 232, 140)
+NEXT_LEVEL_COLOR = pg.Color(40, 184, 111)
 
 ORIENTATION_OFFSET_X = -300
 ORIENTATION_OFFSET_Y = -200
@@ -42,6 +44,7 @@ def convertImageToScreen(screen=None, src='', square_length=BG_SQUARE_LENGTH):
     width,height =  img.size
     pixels = img.load()
     returnList: list[tuple[pg.Color, pg.Rect]] = []
+    returnListTwo: list[pg.math.Vector2] = []
     for x in range(width):
         for y in range(height):
             pixel_value  = pixels[x,y]
@@ -59,8 +62,12 @@ def convertImageToScreen(screen=None, src='', square_length=BG_SQUARE_LENGTH):
                 square_length
             )
             currColor = pg.Color(r,g,b,a) if a != 0 else BACKGROUND_COLOR
+            if (currColor == NEXT_LEVEL_COLOR):
+                returnListTwo.append(pg.math.Vector2(x,y))
             returnList.append((currColor,currentRect))
-    return returnList
+    return (returnListTwo, returnList)
+
+
 
 def cut_walls(surface: pg.surface.Surface, rects: list[tuple[pg.Color, pg.Rect]], square_length=BG_SQUARE_LENGTH):
     LINE_WIDTH = 3
@@ -102,7 +109,29 @@ def cut_walls(surface: pg.surface.Surface, rects: list[tuple[pg.Color, pg.Rect]]
 
 
         
+########################################################
+# Fetch the Area of a box given the top left and bottom right corners
+########################################################
+def getAreaOfBox(listOfSafeAreaBoxes: list[pg.math.Vector2])->list:
+    #print(f'size of  listOfSafeAreaBoxes {len(listOfSafeAreaBoxes)}')
+    bottomRight = pg.math.Vector2(-10000000,-10000000)
+    topLeft = pg.math.Vector2(10000000,10000000)
 
-
-
-    
+    min_x = float("inf")
+    min_y = float("inf")
+    max_x = float("-inf")
+    max_y = float("-inf")
+    for box in listOfSafeAreaBoxes:
+        if box.x < min_x:
+            min_x = box.x
+        if box.y < min_y:
+            min_y = box.y
+        if box.x > max_x:
+            max_x = box.x
+        if box.y > max_y:
+            max_y = box.y
+            
+    topLeft = pg.math.Vector2(min_x,min_y)
+    bottomRight = pg.math.Vector2(max_x,max_y)
+    size =pg.math.Vector2(1+ (max_x - min_x), 1+ (max_y-min_y))
+    return [size,bottomRight,topLeft]

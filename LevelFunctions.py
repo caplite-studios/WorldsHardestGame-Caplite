@@ -139,7 +139,7 @@ def getAreaOfBox(listOfSafeAreaBoxes: list[pg.math.Vector2])->list:
 def level_coins(level):
     match level:
         case 1:
-            return 2
+            return 4
         case 2:
             return 2
         case 3:

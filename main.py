@@ -27,7 +27,7 @@ screen = pg.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 clock = pg.time.Clock()
 background = pg.Surface(screen.get_size()).convert()
 background.fill(LevelFunctions.BACKGROUND_COLOR)
-pg.display.set_caption("Worlds Most Game")
+pg.display.set_caption("The World's Most Game")
 
 screen.blit(background, (0, 0))
 pg.display.flip()
@@ -194,7 +194,7 @@ class Coin(pg.sprite.Sprite):
 
     def update(self):
         t = pg.time.get_ticks() / 1000.0
-        self.pos = pg.Vector2(self.anchor_pos.x, self.anchor_pos.y + math.sin(t * 2.5) * 15)
+        self.pos = pg.Vector2(self.anchor_pos.x, self.anchor_pos.y + math.sin(t * 2.5) * 10)
         self.rect.topleft = (int(self.pos.x), int(self.pos.y))
 
 
@@ -409,8 +409,10 @@ def reset_level_state(coins, cx, cy):
     coins.empty()
     match level:
         case 1:
-            coins.add(Coin(cx - 90, cy - 90))
-            coins.add(Coin(cx - 50, cy - 50))
+            coins.add(Coin(cx+13, cy + 55))
+            coins.add(Coin(cx+13, cy-5))
+            coins.add(Coin(cx+13, cy + -65))
+            coins.add(Coin(cx+13, cy-125))
         case 2:
             coins.add(Coin(cx - 90, cy - 90))
             coins.add(Coin(cx - 50, cy - 50))
@@ -418,7 +420,9 @@ def reset_level_state(coins, cx, cy):
             coins.add(Coin(cx - 90, cy - 90))
             coins.add(Coin(cx - 50, cy - 50))
         case 4:
-            coins.add(Coin(cx - 90, cy - 90))
+            coins.add(Coin(cx - 170, cy -120))
+        
+    return coins
 ########################################################
 # Game loop
 ########################################################
@@ -517,11 +521,14 @@ def game_loop():
 
     # Spawn coin
     
+    #This actually changes the coins positions on death
     coins = pg.sprite.Group()
     match level:
         case 1:
-            coins.add(Coin(cx - 90, cy - 90))
-            coins.add(Coin(cx - 50, cy - 50))
+            coins.add(Coin(cx+13, cy + 55))
+            coins.add(Coin(cx+13, cy-5))
+            coins.add(Coin(cx+13, cy + -65))
+            coins.add(Coin(cx+13, cy-125))
         case 2:
             coins.add(Coin(cx - 90, cy - 90))
             coins.add(Coin(cx - 50, cy - 50))
@@ -529,7 +536,7 @@ def game_loop():
             coins.add(Coin(cx - 90, cy - 90))
             coins.add(Coin(cx - 50, cy - 50))
         case 4:
-            coins.add(Coin(cx - 90, cy - 90))
+            coins.add(Coin(cx - 170, cy -120))
         case 5:
             pass
     LevelFunctions.assert_correct_coin_count(coins, level)
@@ -539,7 +546,7 @@ def game_loop():
     player_group = pg.sprite.Group((player))
     
 
-    # Main game loop
+    ##################### Main game loop #####################
     running = True
 
     while running:
@@ -555,7 +562,6 @@ def game_loop():
         keys = pg.key.get_pressed()
         if keys[pg.K_m]:
             return True  # back to menu
-
 
         screen.fill(LevelFunctions.BACKGROUND_COLOR)
         screen.blit(newBg, (0, 0))
@@ -580,25 +586,25 @@ def game_loop():
                 numDeaths += 1
                 cooldownTimer = 1.0
                 player.respawn(player_spawn)
-                reset_level_state(coins, cx, cy)
-
-
-                coins.empty()
-                match level:
-                    case 1:
-                        coins.add(Coin(cx - 90, cy - 90))
-                        coins.add(Coin(cx - 50, cy - 50))
-                    case 2:
-                        coins.add(Coin(cx - 90, cy - 90))
-                        coins.add(Coin(cx - 50, cy - 50))
-                    case 3:
-                        coins.add(Coin(cx - 90, cy - 90))
-                        coins.add(Coin(cx - 50, cy - 50))
-                    case 4:
-                        coins.add(Coin(cx - 90, cy - 90))
-                    case 5:
-                        pass
-                break
+                coins = reset_level_state(coins, cx, cy)
+                #coins.empty()
+                # match level:
+                #     case 1:
+                #         coins.add(Coin(cx+13, cy + 55))
+                #         coins.add(Coin(cx+13, cy-5))
+                #         coins.add(Coin(cx+13, cy + -65))
+                #         coins.add(Coin(cx+13, cy-125))
+                #     case 2:
+                #         coins.add(Coin(cx - 90, cy - 90))
+                #         coins.add(Coin(cx - 50, cy - 50))
+                #     case 3:
+                #         coins.add(Coin(cx - 90, cy - 90))
+                #         coins.add(Coin(cx - 50, cy - 50))
+                #     case 4:
+                #         coins.add(Coin(cx - 90, cy - 90))
+                #     case 5:
+                #         pass
+                # break
         
         cc = pg.sprite.spritecollideany(player, coins, pg.sprite.collide_mask)
         if cc:
@@ -606,7 +612,7 @@ def game_loop():
         
         #Check for Finish area collisions
         if(safeRT):
-            # DEBUG: pg.draw.rect(newBg, pg.Color(255,255,0), safeRT.rect)
+            # DEBUG: pg.draw.rect(newBg, pg.Color(255,255,0), safeRT.rect) # draws yellow rectangle
             if(safeRT.rect.colliderect(player.rect)and cooldownTimer <=0 and len(coins) == 0):
                 level += 1
                 print(f'Send to new level {level}!')
@@ -660,7 +666,22 @@ def splash_screen():
 def main_menu():
     font = get_font(30)
     while True:
+<<<<<<< HEAD
         screen.blit(splash_dimmed, (0, 0))
+=======
+
+        
+        screen.blit(background, (0, 0))
+<<<<<<< HEAD
+        logo = LevelFunctions.load_image('logo.png', 1, (screen.get_width() /2, screen.get_height() /4))
+        logoRect = pg.Rect(200,400, logo[1][0], logo[1][1])
+        background.blit(logo[0], logoRect)
+>>>>>>> 3856eb3 (publishing final changes from lucas's end)
+=======
+        # logo = LevelFunctions.load_image('logo.png', 1, (screen.get_width() /2, screen.get_height() /4))
+        # logoRect = pg.Rect(200,400, logo[1][0], logo[1][1])
+        # background.blit(logo[0], logoRect)
+>>>>>>> d7ec996 (Simplified the coin spawning logic a bit, changed the positions of a few coins, still have work to do)
         menu_mouse_pos = pg.mouse.get_pos()
 
         play_button = Button(

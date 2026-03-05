@@ -21,7 +21,7 @@ ORIENTATION_OFFSET_Y = -200
 
 def load_image(name, scale=1, size=None):
     fullname = os.path.join(assets_dir, name)
-    image = pg.image.load(fullname).convert_alpha()
+    image = pg.image.load(fullname).convert_alpha() #convert shows boxes around the image 
     if size:
         image = pg.transform.scale(image, size)
     elif scale != 1:

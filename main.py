@@ -7,7 +7,7 @@ import LevelFunctions
 ########################################################
 # Define global variables
 ########################################################
-level = 1
+level = 2
 currentLevelSafeArea: tuple[pg.math.Vector2, pg.math.Vector2] = tuple[pg.math.Vector2(0,0),pg.math.Vector2(1,1)] 
 listOfSafeAreaBoxes: list[pg.math.Vector2] = []
 safeRectTransition = None
@@ -164,7 +164,7 @@ class Player(pg.sprite.Sprite):
             self.velocity.normalize_ip()
 
         # Move X axis then resolve collisions
-        self.pos.x += self.velocity.x * PLAYER_SPEED * dt
+        self.pos.x += self.velocity.x * PLAYER_SPEED * dt/1000
         self.rect.x = int(self.pos.x)
         for wall in pg.sprite.spritecollide(self, walls, False):
             if self.velocity.x > 0:
@@ -174,7 +174,7 @@ class Player(pg.sprite.Sprite):
             self.pos.x = self.rect.x
 
         # Move Y axis then resolve collisions
-        self.pos.y += self.velocity.y * PLAYER_SPEED * dt
+        self.pos.y += self.velocity.y * PLAYER_SPEED * dt/1000
         self.rect.y = int(self.pos.y)
         for wall in pg.sprite.spritecollide(self, walls, False):
             if self.velocity.y > 0:
@@ -434,7 +434,7 @@ cooldownTimer = 0
 def game_loop():
 
     global listOfSafeAreaBoxes, currentLevelSafeArea,level,safeRT,numDeaths,cooldownTimer
-    dt = clock.tick(60) / 1000
+
 
     # Build level background and walls
     
@@ -489,15 +489,16 @@ def game_loop():
             enemies.add(SinEnemy(cx - 25, cy - 135, 3, 270, 1,'x'))
 
         case 2:
-            enemies.add(SinEnemy(cx+135, cy - 125, 3, 190, 1,'y'))
-            enemies.add(SinEnemy(cx+75, cy - 125, 3, 190, 0,'y'))
-            enemies.add(SinEnemy(cx+15, cy - 125, 3, 190, 1,'y'))
-            enemies.add(SinEnemy(cx-45, cy - 125, 3, 190, 0,'y'))
-            enemies.add(SinEnemy(cx-105, cy - 125, 3, 190, 1,'y'))
-            enemies.add(SinEnemy(cx-165, cy - 125, 3, 190, 0,'y'))
-            enemies.add(SinEnemy(cx-235, cy - 125, 3, 190, 1,'y'))
-            enemies.add(SinEnemy(cx-295, cy - 125, 3, 190, 0,'y'))
-            enemies.add(SinEnemy(cx-355, cy - 125, 3, 190, 1,'y'))
+            startCx  =135
+            startCy = -125
+            dX = -60
+            dY= 0
+            offSet = 1
+            for i in range(9):
+                offSet = i %2 
+                enemies.add(SinEnemy(cx+startCx,cy+startCy ,3,190,offSet,'y'))
+                startCx += dX
+                startCy += dY
         case 3:
 
             pass
@@ -553,9 +554,10 @@ def game_loop():
     running = True
 
     while running:
+        dt = clock.tick(60) 
         #cooldown timer for death counter and coin counter
         if cooldownTimer > 0:
-            cooldownTimer -= dt
+            cooldownTimer -= dt/1000
 
         for event in pg.event.get():
             if event.type == pg.QUIT:
@@ -642,7 +644,6 @@ def game_loop():
         DeathCounterUI.update(screen)
 
         pg.display.flip()
-        dt = clock.tick(60) / 1000
 
     return False
 

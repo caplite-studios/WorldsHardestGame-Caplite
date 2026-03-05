@@ -242,64 +242,21 @@ class SinEnemy(Enemy):
 
 def SetUpLevel(level):
     global rectsOnScreen
-    match level:
-        case 1:
-            listOfSafeAreaBoxes, rectsOnScreen = LevelFunctions.convertImageToScreen(screen, './assets/level1map.png')
-            safeArea = LevelFunctions.getAreaOfBox(listOfSafeAreaBoxes)
-            safeRectTransition = LevelTransition(
-                level,
-                pg.Rect(
-                    safeArea[2].x * LevelFunctions.BG_SQUARE_LENGTH + LevelFunctions.ORIENTATION_OFFSET_X,
-                    safeArea[2].y * LevelFunctions.BG_SQUARE_LENGTH + LevelFunctions.ORIENTATION_OFFSET_Y,
-                    safeArea[0].x * LevelFunctions.BG_SQUARE_LENGTH,
-                    safeArea[0].y * LevelFunctions.BG_SQUARE_LENGTH
-                ))
-            return safeRectTransition
-        case 2:
-            listOfSafeAreaBoxes, rectsOnScreen = LevelFunctions.convertImageToScreen(screen, './assets/level_two.png')
-            safeArea = LevelFunctions.getAreaOfBox(listOfSafeAreaBoxes)
-            safeRectTransition = LevelTransition(
-                level,
-                pg.Rect(
-                    safeArea[2].x * LevelFunctions.BG_SQUARE_LENGTH + LevelFunctions.ORIENTATION_OFFSET_X,
-                    safeArea[2].y * LevelFunctions.BG_SQUARE_LENGTH + LevelFunctions.ORIENTATION_OFFSET_Y,
-                    safeArea[0].x * LevelFunctions.BG_SQUARE_LENGTH,
-                    safeArea[0].y * LevelFunctions.BG_SQUARE_LENGTH
-                ))
-            
-            return safeRectTransition
-        case 3:
-            listOfSafeAreaBoxes, rectsOnScreen = LevelFunctions.convertImageToScreen(screen, './assets/level_duck.png', 50)
-            smaller_bg_square_length = 50
-            safeArea = LevelFunctions.getAreaOfBox(listOfSafeAreaBoxes)
-            safeRectTransition = LevelTransition(
-                level,
-                pg.Rect(
-                    safeArea[2].x * smaller_bg_square_length + LevelFunctions.ORIENTATION_OFFSET_X,
-                    safeArea[2].y * smaller_bg_square_length + LevelFunctions.ORIENTATION_OFFSET_Y,
-                    safeArea[0].x * smaller_bg_square_length,
-                    safeArea[0].y * smaller_bg_square_length
-                ))
-            return safeRectTransition
-        case 4:
-            listOfSafeAreaBoxes, rectsOnScreen = LevelFunctions.convertImageToScreen(screen, './assets/level_four.png')
-            safeArea = LevelFunctions.getAreaOfBox(listOfSafeAreaBoxes)
-            safeRectTransition = LevelTransition(
-                level,
-                pg.Rect(
-                    safeArea[2].x * LevelFunctions.BG_SQUARE_LENGTH + LevelFunctions.ORIENTATION_OFFSET_X,
-                    safeArea[2].y * LevelFunctions.BG_SQUARE_LENGTH + LevelFunctions.ORIENTATION_OFFSET_Y,
-                    safeArea[0].x * LevelFunctions.BG_SQUARE_LENGTH,
-                    safeArea[0].y * LevelFunctions.BG_SQUARE_LENGTH
-                ))
-            
-            return safeRectTransition
-        case 5:
-            pass # win level right now 
-        case _:
-            raise ValueError("NO LEVEL SELECTED")
-        
-safeRT = SetUpLevel(level)
+    if level not in LEVEL_CONFIGS:
+        raise ValueError("NO LEVEL SELECTED")
+    config = LEVEL_CONFIGS[level]
+    tile_size = config['tile_size']
+    listOfSafeAreaBoxes, rectsOnScreen = LevelFunctions.convertImageToScreen(screen, config['map'], tile_size)
+    safeArea = LevelFunctions.getAreaOfBox(listOfSafeAreaBoxes)
+    return LevelTransition(
+        level,
+        pg.Rect(
+            safeArea[2].x * tile_size + LevelFunctions.ORIENTATION_OFFSET_X,
+            safeArea[2].y * tile_size + LevelFunctions.ORIENTATION_OFFSET_Y,
+            safeArea[0].x * tile_size,
+            safeArea[0].y * tile_size
+        ))
+
 class LinearEnemy(Enemy):
 
     def __init__(self, x, y, frequency, amplitude, delay, dir):
@@ -337,7 +294,7 @@ class SquareEnemy(Enemy):
         t = pg.time.get_ticks() / 1000.0
         progress = ((t - self.delay) * self.frequency) % 4.0
         a = self.amplitude
-        if self.clockwise: 
+        if self.clockwise:
             if progress < 1.0:
                 x_offset = -a + progress * 2 * a
                 y_offset = -a
@@ -366,6 +323,90 @@ class SquareEnemy(Enemy):
         self.pos = pg.Vector2(self.anchor_pos.x + x_offset, self.anchor_pos.y + y_offset)
         self.rect.topleft = (int(self.pos.x), int(self.pos.y))
 
+
+########################################################
+# Level configuration - single source of truth for all level data
+########################################################
+LEVEL_CONFIGS = {
+    1: {
+        'map': './assets/level1map.png',
+        'tile_size': 60,
+        'enemies': lambda cx, cy: [
+            SinEnemy(cx - 25, cy + 45, 3, 270, 0, 'x'),
+            SinEnemy(cx - 25, cy - 15, 3, 270, 1, 'x'),
+            SinEnemy(cx - 25, cy - 75, 3, 270, 0, 'x'),
+            SinEnemy(cx - 25, cy - 135, 3, 270, 1, 'x'),
+        ],
+        'coins': lambda cx, cy: [
+            Coin(cx - 90, cy - 90),
+            Coin(cx - 50, cy - 50),
+        ],
+    },
+    2: {
+        'map': './assets/level_two.png',
+        'tile_size': 60,
+        'enemies': lambda cx, cy: [
+            SinEnemy(cx + 135, cy - 125, 3, 190, 1, 'y'),
+            SinEnemy(cx + 75, cy - 125, 3, 190, 0, 'y'),
+            SinEnemy(cx + 15, cy - 125, 3, 190, 1, 'y'),
+            SinEnemy(cx - 45, cy - 125, 3, 190, 0, 'y'),
+            SinEnemy(cx - 105, cy - 125, 3, 190, 1, 'y'),
+            SinEnemy(cx - 165, cy - 125, 3, 190, 0, 'y'),
+            SinEnemy(cx - 235, cy - 125, 3, 190, 1, 'y'),
+            SinEnemy(cx - 295, cy - 125, 3, 190, 0, 'y'),
+            SinEnemy(cx - 355, cy - 125, 3, 190, 1, 'y'),
+        ],
+        'coins': lambda cx, cy: [
+            Coin(cx - 90, cy - 90),
+            Coin(cx - 50, cy - 50),
+        ],
+    },
+    3: {
+        'map': './assets/level_duck.png',
+        'tile_size': 50,
+        'enemies': lambda cx, cy: [],
+        'coins': lambda cx, cy: [
+            Coin(cx - 90, cy - 90),
+            Coin(cx - 50, cy - 50),
+        ],
+    },
+    4: {
+        'map': './assets/level_four.png',
+        'tile_size': 60,
+        'enemies': lambda cx, cy: [
+            SquareEnemy(cx - 75, cy + 30, 1.3, 90, delay, clockwise=True)
+            for delay in [0.1, 0.3, 0.5, 0.7, 0.9, 1.1, 1.3, 1.5, 1.7, 1.9, 2.1, 2.3, 2.5]
+        ],
+        'coins': lambda cx, cy: [
+            Coin(cx - 90, cy - 90),
+        ],
+    },
+    5: {
+        'map': './assets/level_five.png',
+        'tile_size': 60,
+        'enemies': lambda cx, cy: [
+            # Upper corridor patrol - blocks the path near spawn
+            SquareEnemy(cx - 60, cy - 380, 1.0, 70, 0.0, clockwise=True),
+            SquareEnemy(cx - 60, cy - 380, 1.0, 70, 1.0, clockwise=True),
+            SquareEnemy(cx - 60, cy - 380, 1.0, 70, 2.0, clockwise=True),
+            # Mid-maze patrol - around the internal wall obstacles
+            SquareEnemy(cx - 180, cy - 230, 0.8, 55, 0.0, clockwise=False),
+            SquareEnemy(cx - 180, cy - 230, 0.8, 55, 1.5, clockwise=False),
+            # Lower corridor patrol - guards the exit
+            SquareEnemy(cx + 10, cy + 60, 1.0, 80, 0.0, clockwise=True),
+            SquareEnemy(cx + 10, cy + 60, 1.0, 80, 1.0, clockwise=True),
+            SquareEnemy(cx + 10, cy + 60, 1.0, 80, 2.0, clockwise=True),
+        ],
+        'coins': lambda cx, cy: [
+            Coin(cx - 150, cy - 150),
+            Coin(cx + 30, cy - 50),
+        ],
+    },
+}
+
+MAX_LEVEL = len(LEVEL_CONFIGS)
+
+safeRT = SetUpLevel(level)
 
 ########################################################
 # Win Screen!
@@ -407,18 +448,8 @@ def win_screen():
 
 def reset_level_state(coins, cx, cy):
     coins.empty()
-    match level:
-        case 1:
-            coins.add(Coin(cx - 90, cy - 90))
-            coins.add(Coin(cx - 50, cy - 50))
-        case 2:
-            coins.add(Coin(cx - 90, cy - 90))
-            coins.add(Coin(cx - 50, cy - 50))
-        case 3:
-            coins.add(Coin(cx - 90, cy - 90))
-            coins.add(Coin(cx - 50, cy - 50))
-        case 4:
-            coins.add(Coin(cx - 90, cy - 90))
+    for coin in LEVEL_CONFIGS[level]['coins'](cx, cy):
+        coins.add(coin)
 ########################################################
 # Game loop
 ########################################################
@@ -461,77 +492,21 @@ def game_loop():
 
 
     # Draw level tiles
+    config = LEVEL_CONFIGS[level]
     for (color, rect) in rectsOnScreen:
         pg.draw.rect(newBg, color, rect)
-    match level:
-        case 3:
-            LevelFunctions.cut_walls(newBg, rectsOnScreen, 50)
-        case _:
-            LevelFunctions.cut_walls(newBg, rectsOnScreen)
-
+    LevelFunctions.cut_walls(newBg, rectsOnScreen, config['tile_size'])
 
     # Create enemies
-
     enemies = pg.sprite.Group()
     cx, cy = screen.get_width() / 2, screen.get_height() / 2
-    match level:
-        case 1:
-            enemies.add(SinEnemy(cx - 25, cy + 45, 3, 270, 0,'x'))
-            enemies.add(SinEnemy(cx - 25, cy - 15, 3, 270, 1,'x'))
-            enemies.add(SinEnemy(cx - 25, cy - 75, 3, 270, 0,'x'))
-            enemies.add(SinEnemy(cx - 25, cy - 135, 3, 270, 1,'x'))
+    for enemy in config['enemies'](cx, cy):
+        enemies.add(enemy)
 
-        case 2:
-            enemies.add(SinEnemy(cx+135, cy - 125, 3, 190, 1,'y'))
-            enemies.add(SinEnemy(cx+75, cy - 125, 3, 190, 0,'y'))
-            enemies.add(SinEnemy(cx+15, cy - 125, 3, 190, 1,'y'))
-            enemies.add(SinEnemy(cx-45, cy - 125, 3, 190, 0,'y'))
-            enemies.add(SinEnemy(cx-105, cy - 125, 3, 190, 1,'y'))
-            enemies.add(SinEnemy(cx-165, cy - 125, 3, 190, 0,'y'))
-            enemies.add(SinEnemy(cx-235, cy - 125, 3, 190, 1,'y'))
-            enemies.add(SinEnemy(cx-295, cy - 125, 3, 190, 0,'y'))
-            enemies.add(SinEnemy(cx-355, cy - 125, 3, 190, 1,'y'))
-        case 3:
-
-            pass
-        case 4:
-            enemies.add(SquareEnemy(cx- 75, cy+30, 1.3, 90, 0.1, clockwise=True))
-            enemies.add(SquareEnemy(cx- 75, cy+30, 1.3, 90, 0.3, clockwise=True))
-            enemies.add(SquareEnemy(cx- 75, cy+30, 1.3, 90, 0.5, clockwise=True))
-            enemies.add(SquareEnemy(cx- 75, cy+30, 1.3, 90, 0.7, clockwise=True))
-            enemies.add(SquareEnemy(cx- 75, cy+30, 1.3, 90, 0.9, clockwise=True))
-            enemies.add(SquareEnemy(cx- 75, cy+30, 1.3, 90, 1.1, clockwise=True))
-            enemies.add(SquareEnemy(cx- 75, cy+30, 1.3, 90, 1.3, clockwise=True))
-            enemies.add(SquareEnemy(cx- 75, cy+30, 1.3, 90, 1.5, clockwise=True))
-            enemies.add(SquareEnemy(cx- 75, cy+30, 1.3, 90, 1.7, clockwise=True))
-            enemies.add(SquareEnemy(cx- 75, cy+30, 1.3, 90, 1.9, clockwise=True))
-            enemies.add(SquareEnemy(cx- 75, cy+30, 1.3, 90, 2.1, clockwise=True))
-            enemies.add(SquareEnemy(cx- 75, cy+30, 1.3, 90, 2.3, clockwise=True))
-            enemies.add(SquareEnemy(cx- 75, cy+30, 1.3, 90, 2.5, clockwise=True))
-
-        case 5:
-            pass # win level right now 
-        case _:
-            raise ValueError("NO LEVEL SELECTED")
-        
-
-    # Spawn coin
-    
+    # Spawn coins
     coins = pg.sprite.Group()
-    match level:
-        case 1:
-            coins.add(Coin(cx - 90, cy - 90))
-            coins.add(Coin(cx - 50, cy - 50))
-        case 2:
-            coins.add(Coin(cx - 90, cy - 90))
-            coins.add(Coin(cx - 50, cy - 50))
-        case 3:
-            coins.add(Coin(cx - 90, cy - 90))
-            coins.add(Coin(cx - 50, cy - 50))
-        case 4:
-            coins.add(Coin(cx - 90, cy - 90))
-        case 5:
-            pass
+    for coin in config['coins'](cx, cy):
+        coins.add(coin)
     LevelFunctions.assert_correct_coin_count(coins, level)
     
 
@@ -576,28 +551,11 @@ def game_loop():
 
         # Check enemy collisions
         for enemy in enemies:
-            if pg.sprite.collide_mask(player, enemy)and cooldownTimer <=0 :
+            if pg.sprite.collide_mask(player, enemy) and cooldownTimer <= 0:
                 numDeaths += 1
                 cooldownTimer = 1.0
                 player.respawn(player_spawn)
                 reset_level_state(coins, cx, cy)
-
-
-                coins.empty()
-                match level:
-                    case 1:
-                        coins.add(Coin(cx - 90, cy - 90))
-                        coins.add(Coin(cx - 50, cy - 50))
-                    case 2:
-                        coins.add(Coin(cx - 90, cy - 90))
-                        coins.add(Coin(cx - 50, cy - 50))
-                    case 3:
-                        coins.add(Coin(cx - 90, cy - 90))
-                        coins.add(Coin(cx - 50, cy - 50))
-                    case 4:
-                        coins.add(Coin(cx - 90, cy - 90))
-                    case 5:
-                        pass
                 break
         
         cc = pg.sprite.spritecollideany(player, coins, pg.sprite.collide_mask)
@@ -612,9 +570,9 @@ def game_loop():
                 print(f'Send to new level {level}!')
                 cooldownTimer = 1.0
 
-                if(level ==5 ): #player wins the game as of now 
+                if level > MAX_LEVEL:  # player wins after beating all levels
                     win_screen()
-                    return False # return out of game completely
+                    return False  # return out of game completely
                     
                 safeRT = SetUpLevel(level)
                 return game_loop()  # restart loop cleanly

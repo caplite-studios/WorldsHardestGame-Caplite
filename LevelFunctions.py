@@ -146,8 +146,8 @@ def level_coins(level):
             return 2
         case 4:
             return 1
-        case 5: #winning 
-            pass
+        case 5:
+            return 2
         case _:
             raise ValueError("Level does not support coins")
         

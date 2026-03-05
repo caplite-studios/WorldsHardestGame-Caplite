@@ -7,15 +7,17 @@ import LevelFunctions
 ########################################################
 # Define global variables
 ########################################################
-level = 1
+level = 2
 currentLevelSafeArea: tuple[pg.math.Vector2, pg.math.Vector2] = tuple[pg.math.Vector2(0,0),pg.math.Vector2(1,1)] 
 listOfSafeAreaBoxes: list[pg.math.Vector2] = []
 safeRectTransition = None
 rectsOnScreen = []
 numDeaths = 0
+splash_screen_time_seconds = 2
 PLAYER_COLOR = pg.Color(251, 3, 1)
 SPEED_INT = 4
 PLAYER_SPEED = SPEED_INT * 100
+
 SCREEN_WIDTH = 1440
 SCREEN_HEIGHT = SCREEN_WIDTH
 
@@ -27,7 +29,7 @@ screen = pg.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 clock = pg.time.Clock()
 background = pg.Surface(screen.get_size()).convert()
 background.fill(LevelFunctions.BACKGROUND_COLOR)
-pg.display.set_caption("Worlds Most Game")
+pg.display.set_caption("The World's Most Game")
 
 screen.blit(background, (0, 0))
 pg.display.flip()
@@ -162,7 +164,7 @@ class Player(pg.sprite.Sprite):
             self.velocity.normalize_ip()
 
         # Move X axis then resolve collisions
-        self.pos.x += self.velocity.x * PLAYER_SPEED * dt
+        self.pos.x += self.velocity.x * PLAYER_SPEED * dt/1000
         self.rect.x = int(self.pos.x)
         for wall in pg.sprite.spritecollide(self, walls, False):
             if self.velocity.x > 0:
@@ -172,7 +174,7 @@ class Player(pg.sprite.Sprite):
             self.pos.x = self.rect.x
 
         # Move Y axis then resolve collisions
-        self.pos.y += self.velocity.y * PLAYER_SPEED * dt
+        self.pos.y += self.velocity.y * PLAYER_SPEED * dt/1000
         self.rect.y = int(self.pos.y)
         for wall in pg.sprite.spritecollide(self, walls, False):
             if self.velocity.y > 0:
@@ -194,7 +196,7 @@ class Coin(pg.sprite.Sprite):
 
     def update(self):
         t = pg.time.get_ticks() / 1000.0
-        self.pos = pg.Vector2(self.anchor_pos.x, self.anchor_pos.y + math.sin(t * 2.5) * 15)
+        self.pos = pg.Vector2(self.anchor_pos.x, self.anchor_pos.y + math.sin(t * 2.5) * 10)
         self.rect.topleft = (int(self.pos.x), int(self.pos.y))
 
 
@@ -413,6 +415,7 @@ safeRT = SetUpLevel(level)
 ########################################################
 
 def win_screen():
+    global background
     font1 = get_font(180)
     font2 = get_font(60)
     while True:
@@ -439,10 +442,10 @@ def win_screen():
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 pg.quit()
-                return
+                return False
             if event.type == pg.KEYDOWN and event.key == pg.K_m:
                 pg.quit()
-                return
+                return False
             
 
 
@@ -458,7 +461,7 @@ cooldownTimer = 0
 def game_loop():
 
     global listOfSafeAreaBoxes, currentLevelSafeArea,level,safeRT,numDeaths,cooldownTimer
-    dt = clock.tick(60) / 1000
+
 
     # Build level background and walls
     
@@ -514,13 +517,14 @@ def game_loop():
     player_group = pg.sprite.Group((player))
     
 
-    # Main game loop
+    ##################### Main game loop #####################
     running = True
 
     while running:
+        dt = clock.tick(60) 
         #cooldown timer for death counter and coin counter
         if cooldownTimer > 0:
-            cooldownTimer -= dt
+            cooldownTimer -= dt/1000
 
         for event in pg.event.get():
             if event.type == pg.QUIT:
@@ -530,7 +534,6 @@ def game_loop():
         keys = pg.key.get_pressed()
         if keys[pg.K_m]:
             return True  # back to menu
-
 
         screen.fill(LevelFunctions.BACKGROUND_COLOR)
         screen.blit(newBg, (0, 0))
@@ -546,14 +549,15 @@ def game_loop():
         coins.draw(screen)
 
         # Draw coin counter
-        display_coins = ContextMenu((cx - 400, cy - 300), get_font(25), f'Coins: {LevelFunctions.num_coins_left_in_level(coins, level)}', pg.Color(0,0,0), None)
+        display_coins = ContextMenu((cx - 400, cy - 300), get_font(25), f'Coins: {LevelFunctions.num_coins_left_in_level(coins, level)}/{LevelFunctions.level_coins(level)}',
+                                     pg.Color(0,0,0), None)
         display_coins.update(screen)
 
         # Check enemy collisions
         for enemy in enemies:
             if pg.sprite.collide_mask(player, enemy) and cooldownTimer <= 0:
                 numDeaths += 1
-                cooldownTimer = 1.0
+                cooldownTimer = 0.5 # small cooldown to prevent multiple deaths from one collision
                 player.respawn(player_spawn)
                 reset_level_state(coins, cx, cy)
                 break
@@ -564,11 +568,11 @@ def game_loop():
         
         #Check for Finish area collisions
         if(safeRT):
-            # DEBUG: pg.draw.rect(newBg, pg.Color(255,255,0), safeRT.rect)
+            # DEBUG: pg.draw.rect(newBg, pg.Color(255,255,0), safeRT.rect) # draws yellow rectangle
             if(safeRT.rect.colliderect(player.rect)and cooldownTimer <=0 and len(coins) == 0):
                 level += 1
                 print(f'Send to new level {level}!')
-                cooldownTimer = 1.0
+                cooldownTimer = 1.0 # cooldown to prevent immediate re-triggering of level transition
 
                 if level > MAX_LEVEL:  # player wins after beating all levels
                     win_screen()
@@ -583,14 +587,13 @@ def game_loop():
         DeathCounterUI = UIRect(
             pos=((screen.get_width() / 2 )+300, (screen.get_height() / 2) + 300),
             font=font,
-            text_input=f'Death Count: {numDeaths}',
+            text_input=f'Deaths: {numDeaths}',
             foreground=pg.Color(0, 0, 0),
             background=None
         )
         DeathCounterUI.update(screen)
 
         pg.display.flip()
-        dt = clock.tick(60) / 1000
 
     return False
 
@@ -604,7 +607,7 @@ def splash_screen():
     screen.blit(splash_img, (0, 0))
     pg.display.flip()
     start = pg.time.get_ticks()
-    while pg.time.get_ticks() - start < 3000:
+    while pg.time.get_ticks() - start < splash_screen_time_seconds * 1000: # show splash for 3 seconds
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 pg.quit()
@@ -616,15 +619,15 @@ def splash_screen():
 
 
 def main_menu():
-    font = get_font(30)
+    play_button_font = get_font(60)
     while True:
-        screen.blit(splash_dimmed, (0, 0))
+
         menu_mouse_pos = pg.mouse.get_pos()
 
         play_button = Button(
-            pos=(screen.get_width() / 2, screen.get_height() / 2),
-            font=font,
-            text_input="Play",
+            pos=(screen.get_width() / 2, screen.get_height() / 2 + 300),
+            font=play_button_font,
+            text_input="PLAY",
             foreground=pg.Color(0, 0, 0),
             background=pg.Color(255, 255, 255, 50)
         )
@@ -639,7 +642,8 @@ def main_menu():
                 return
             if event.type == pg.MOUSEBUTTONDOWN:
                 if play_button.rect.collidepoint(menu_mouse_pos):
-                    if not game_loop():
+                    if not game_loop(): # go to end screen if false is returned
+                        background.fill(LevelFunctions.BACKGROUND_COLOR)
                         return
             if event.type == pg.KEYDOWN and event.key == pg.K_m:
                 pg.quit()

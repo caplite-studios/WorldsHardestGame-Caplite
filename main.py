@@ -164,7 +164,7 @@ class Player(pg.sprite.Sprite):
             self.velocity.normalize_ip()
 
         # Move X axis then resolve collisions
-        self.pos.x += self.velocity.x * PLAYER_SPEED * dt/1000
+        self.pos.x += self.velocity.x * PLAYER_SPEED * dt
         self.rect.x = int(self.pos.x)
         for wall in pg.sprite.spritecollide(self, walls, False):
             if self.velocity.x > 0:
@@ -174,7 +174,7 @@ class Player(pg.sprite.Sprite):
             self.pos.x = self.rect.x
 
         # Move Y axis then resolve collisions
-        self.pos.y += self.velocity.y * PLAYER_SPEED * dt/1000
+        self.pos.y += self.velocity.y * PLAYER_SPEED * dt
         self.rect.y = int(self.pos.y)
         for wall in pg.sprite.spritecollide(self, walls, False):
             if self.velocity.y > 0:
@@ -217,7 +217,7 @@ class Enemy(pg.sprite.Sprite):
         self.pos = pg.Vector2(x, y)
         self.rect.topleft = (int(self.pos.x), int(self.pos.y))
 
-    def update(self):
+    def update(self, dt):
         t = pg.time.get_ticks() / 1000.0
         self.pos = pg.Vector2(self.anchor_pos.x + math.sin(t * 3) * 300, self.anchor_pos.y)
         self.rect.topleft = (int(self.pos.x), int(self.pos.y))
@@ -325,6 +325,47 @@ class SquareEnemy(Enemy):
         self.pos = pg.Vector2(self.anchor_pos.x + x_offset, self.anchor_pos.y + y_offset)
         self.rect.topleft = (int(self.pos.x), int(self.pos.y))
 
+class CircleEnemy(Enemy):
+
+    def __init__(self, x, y, radius, freq, start_degs, clockwise=True):
+        
+        # set the anchor in super call
+        super().__init__(x, y)
+        self.radius = radius
+        self.freq = freq
+        self.start_degs = start_degs
+        self.clockwise = clockwise
+        # reset the pos in the rest,
+        # pos should default with respect to radius & delay
+        # final movement vector retrieved from radius and delay should be added to anchor_pos to get starting pos
+
+        self.direction = pg.Vector2(1,0)
+        self.direction.rotate_rad_ip(
+            math.radians(start_degs)
+        )
+        # find initial distance (given)
+        self.pos = self.anchor_pos + (self.direction * self.radius)
+        
+        # at the end update the rect pos as well
+        self.rect.topleft = self.pos
+
+    def update(self, dt):
+        #  rotations per second per degrees
+        di = self.freq * dt * 360
+        if (self.clockwise): di = -di
+        
+        self.direction.rotate_ip(di)
+        self.pos = self.anchor_pos + (self.direction * self.radius)
+    
+        # have to rotate pos around the anchorpos
+        self.rect.topleft = self.pos
+
+
+
+
+        
+
+        
 
 ########################################################
 # Level configuration - single source of truth for all level data
@@ -348,6 +389,7 @@ LEVEL_CONFIGS = {
         'map': './assets/level_two.png',
         'tile_size': 60,
         'enemies': lambda cx, cy: [
+            CircleEnemy(cx, cy, 300, 0.25, 1),
             SinEnemy(cx + 135, cy - 125, 3, 190, 1, 'y'),
             SinEnemy(cx + 75, cy - 125, 3, 190, 0, 'y'),
             SinEnemy(cx + 15, cy - 125, 3, 190, 1, 'y'),
@@ -519,9 +561,9 @@ def game_loop():
 
     ##################### Main game loop #####################
     running = True
-
+    dt = 0
     while running:
-        dt = clock.tick(60) 
+        dt = clock.tick(60) / 1000
         #cooldown timer for death counter and coin counter
         if cooldownTimer > 0:
             cooldownTimer -= dt/1000
@@ -542,7 +584,7 @@ def game_loop():
         coins.update()
 
         
-        enemies.update()
+        enemies.update(dt)
         enemies.draw(screen)
        
         player_group.draw(screen)

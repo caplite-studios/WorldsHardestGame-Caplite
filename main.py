@@ -209,7 +209,7 @@ class Enemy(pg.sprite.Sprite):
         self.pos = pg.Vector2(x, y)
         self.rect.topleft = (int(self.pos.x), int(self.pos.y))
 
-    def update(self, dt):
+    def update(self):
         t = pg.time.get_ticks() / 1000.0
         self.pos = pg.Vector2(self.anchor_pos.x + math.sin(t * 3) * 300, self.anchor_pos.y)
         self.rect.topleft = (int(self.pos.x), int(self.pos.y))
@@ -224,7 +224,7 @@ class SinEnemy(Enemy):
         self.frequency = frequency
         self.dir = dir 
 
-    def update(self, dt):
+    def update(self):
         t = pg.time.get_ticks() / 1000.0
         if(self.dir =='x'):
             self.pos = pg.Vector2(self.anchor_pos.x + math.sin((t - self.delay) * self.frequency) * self.amplitude, self.anchor_pos.y)
@@ -260,7 +260,7 @@ class LinearEnemy(Enemy):
         self.frequency = frequency
         self.dir = dir
 
-    def update(self, dt):
+    def update(self):
         t = pg.time.get_ticks() / 1000.0
         progress = ((t - self.delay) * self.frequency) % 2.0
         if progress > 1.0:
@@ -284,7 +284,7 @@ class SquareEnemy(Enemy):
         self.frequency = frequency
         self.clockwise = clockwise
 
-    def update(self, dt):
+    def update(self):
         t = pg.time.get_ticks() / 1000.0
         progress = ((t - self.delay) * self.frequency) % 4.0
         a = self.amplitude
@@ -341,9 +341,10 @@ class CircleEnemy(Enemy):
         # at the end update the rect pos as well
         self.rect.topleft = self.pos
 
-    def update(self, dt):
+    def update(self):
         #  rotations per second per degrees
-        di = self.freq * (dt / 1000) * 360
+        t = pg.time.get_ticks() / 1000.0
+        di = self.freq * (t / 1000) * 360
         if (self.clockwise): di = -di
         
         self.direction.rotate_ip(di)
@@ -383,7 +384,6 @@ LEVEL_CONFIGS = {
         'map': './assets/level_two.png',
         'tile_size': 60,
         'enemies': lambda cx, cy: [
-            CircleEnemy(cx, cy, 300, 0.25, 1),
             SinEnemy(cx + 135, cy - 125, 3, 190, 1, 'y'),
             SinEnemy(cx + 75, cy - 125, 3, 190, 0, 'y'),
             SinEnemy(cx + 15, cy - 125, 3, 190, 1, 'y'),
@@ -402,7 +402,9 @@ LEVEL_CONFIGS = {
     3: {
         'map': './assets/level_duck.png',
         'tile_size': 50,
-        'enemies': lambda cx, cy: [],
+        'enemies': lambda cx, cy: [
+            CircleEnemy(cx, cy, 300, 0.25, 1),
+        ],
         'coins': lambda cx, cy: [
             Coin(cx - 90, cy - 90),
             Coin(cx - 50, cy - 50),

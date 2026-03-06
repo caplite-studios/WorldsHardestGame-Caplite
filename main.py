@@ -3,11 +3,11 @@ from unittest import case
 import pygame as pg
 import math
 import LevelFunctions
-
+import sys
 ########################################################
 # Define global variables
 ########################################################
-level = 2
+level = 1
 currentLevelSafeArea: tuple[pg.math.Vector2, pg.math.Vector2] = tuple[pg.math.Vector2(0,0),pg.math.Vector2(1,1)] 
 listOfSafeAreaBoxes: list[pg.math.Vector2] = []
 safeRectTransition = None
@@ -69,8 +69,8 @@ class LevelTransition():
 class UIRect():
 
     def __init__(self, pos, font, text_input, foreground, background):
-        self.x_pos = pos[1]
-        self.y_pos = pos[0]
+        self.x_pos = pos[0]
+        self.y_pos = pos[1]
         self.font = font
         self.foreground = foreground
         self.background = background
@@ -81,14 +81,6 @@ class UIRect():
     def update(self, screen):
         screen.blit(self.surface, self.rect)
 
-    # def change_color(self, pos):
-    #     x, y = pos
-    #     new_bg = self.background
-    #     if x in range(self.rect.left, self.rect.right) and y in range(self.rect.top, self.rect.bottom):
-    #         new_bg.a = 100
-    #     else:
-    #         new_bg.a = 20
-    #     self.surface = self.font.render(self.text_input, True, self.foreground, new_bg)
 class Button():
 
     def __init__(self, pos, font, text_input, foreground, background):
@@ -340,8 +332,10 @@ LEVEL_CONFIGS = {
             SinEnemy(cx - 25, cy - 135, 3, 270, 1, 'x'),
         ],
         'coins': lambda cx, cy: [
-            Coin(cx - 90, cy - 90),
-            Coin(cx - 50, cy - 50),
+            Coin(cx -15, cy  -125),
+            Coin(cx - 15, cy -65 ),
+            Coin(cx -15 , cy  -5),
+            Coin(cx -15, cy +55),
         ],
     },
     2: {
@@ -411,6 +405,48 @@ MAX_LEVEL = len(LEVEL_CONFIGS)
 safeRT = SetUpLevel(level)
 
 ########################################################
+# Pause Menu
+########################################################
+def pause_menu():
+    global background
+    fontHeader = get_font(180)
+    fontSubHeader = get_font(100)
+    Pause_UI = UIRect(
+        pos=(screen.get_width() / 2 - 540, screen.get_height() / 2 - 300),
+        font=fontHeader,
+        text_input="Game Paused",
+        foreground=pg.Color(0, 0, 0),
+        background=pg.Color(255, 255, 255, 50)
+    )
+    main_menu_button = Button(
+        pos=(screen.get_width() / 2, screen.get_height() / 2 + 300),
+        font=fontSubHeader,
+        text_input="Main Menu",
+        foreground=pg.Color(0, 0, 0),
+        background=pg.Color(255, 255, 255, 50)
+    )
+    while True:
+        screen.blit(background, (0, 0))
+        screen.blit(Pause_UI.surface,pg.math.Vector2(Pause_UI.x_pos,Pause_UI.y_pos))
+
+        pause_mouse_pos = pg.mouse.get_pos()
+
+        main_menu_button.change_color(pause_mouse_pos)
+        main_menu_button.update(screen)
+        pg.display.flip()
+
+        for event in pg.event.get():
+            if event.type == pg.MOUSEBUTTONDOWN: #if button is clicked 
+                if main_menu_button.rect.collidepoint(pause_mouse_pos):
+                    return True
+                    # if not game_loop(): # go to end screen if false is returned
+                    #     background.fill(LevelFunctions.BACKGROUND_COLOR)
+                    #     return
+        pg.display.flip()
+
+
+
+########################################################
 # Win Screen!
 ########################################################
 
@@ -441,10 +477,10 @@ def win_screen():
 
         for event in pg.event.get():
             if event.type == pg.QUIT:
-                pg.quit()
+                exit()
                 return False
             if event.type == pg.KEYDOWN and event.key == pg.K_m:
-                pg.quit()
+                exit()
                 return False
             
 
@@ -463,137 +499,138 @@ def game_loop():
     global listOfSafeAreaBoxes, currentLevelSafeArea,level,safeRT,numDeaths,cooldownTimer
 
 
-    # Build level background and walls
-    
-    newBg = pg.Surface(screen.get_size()).convert()
-    newBg.fill(pg.Color(177, 172, 255))
-
-
-    black_tuples = [(color, rect) for color, rect in rectsOnScreen if color == LevelFunctions.BACKGROUND_BLACK]
-    walls = list(map(lambda obj: Wall(obj[1]), black_tuples))
-    allwalls = pg.sprite.Group(walls)
-
-
-
-
-    screen.fill(LevelFunctions.BACKGROUND_COLOR)
-    screen.blit(newBg, (0, 0))
-    pg.display.flip()
-    for event in pg.event.get():
-        if event.type == pg.QUIT:
-            pg.quit()
-            return False
-    # Spawn player at first safe area
-    player = Player(screen.get_width() / 2, screen.get_height() / 2)
-    player_spawn = pg.Vector2(screen.get_width() / 2, screen.get_height() / 2)
-    for (color, rect) in rectsOnScreen:
-        if color == LevelFunctions.SAFE_AREA_COLOR:
-            player_spawn = pg.Vector2(rect.left, rect.top)
-            player.pos = player_spawn.copy()
-            player.rect.topleft = (int(player.pos.x), int(player.pos.y))
-            break
-
-
-    # Draw level tiles
-    config = LEVEL_CONFIGS[level]
-    for (color, rect) in rectsOnScreen:
-        pg.draw.rect(newBg, color, rect)
-    LevelFunctions.cut_walls(newBg, rectsOnScreen, config['tile_size'])
-
-    # Create enemies
-    enemies = pg.sprite.Group()
-    cx, cy = screen.get_width() / 2, screen.get_height() / 2
-    for enemy in config['enemies'](cx, cy):
-        enemies.add(enemy)
-
-    # Spawn coins
-    coins = pg.sprite.Group()
-    for coin in config['coins'](cx, cy):
-        coins.add(coin)
-    LevelFunctions.assert_correct_coin_count(coins, level)
-    
-
-
-    player_group = pg.sprite.Group((player))
+  
     
 
     ##################### Main game loop #####################
-    running = True
 
-    while running:
-        dt = clock.tick(60) 
-        #cooldown timer for death counter and coin counter
-        if cooldownTimer > 0:
-            cooldownTimer -= dt/1000
+    while level <= MAX_LEVEL:
+    # Build level background and walls
+        
+        newBg = pg.Surface(screen.get_size()).convert()
+        newBg.fill(pg.Color(177, 172, 255))
 
-        for event in pg.event.get():
-            if event.type == pg.QUIT:
-                pg.quit()
-                return False
 
-        keys = pg.key.get_pressed()
-        if keys[pg.K_m]:
-            return True  # back to menu
+        black_tuples = [(color, rect) for color, rect in rectsOnScreen if color == LevelFunctions.BACKGROUND_BLACK]
+        walls = list(map(lambda obj: Wall(obj[1]), black_tuples))
+        allwalls = pg.sprite.Group(walls)
 
+        
         screen.fill(LevelFunctions.BACKGROUND_COLOR)
         screen.blit(newBg, (0, 0))
-
-        player.update(dt, allwalls)
-        coins.update()
-
-        
-        enemies.update()
-        enemies.draw(screen)
-       
-        player_group.draw(screen)
-        coins.draw(screen)
-
-        # Draw coin counter
-        display_coins = ContextMenu((cx - 400, cy - 300), get_font(25), f'Coins: {LevelFunctions.num_coins_left_in_level(coins, level)}/{LevelFunctions.level_coins(level)}',
-                                     pg.Color(0,0,0), None)
-        display_coins.update(screen)
-
-        # Check enemy collisions
-        for enemy in enemies:
-            if pg.sprite.collide_mask(player, enemy) and cooldownTimer <= 0:
-                numDeaths += 1
-                cooldownTimer = 0.5 # small cooldown to prevent multiple deaths from one collision
-                player.respawn(player_spawn)
-                reset_level_state(coins, cx, cy)
-                break
-        
-        cc = pg.sprite.spritecollideany(player, coins, pg.sprite.collide_mask)
-        if cc:
-            coins.remove(cc)
-        
-        #Check for Finish area collisions
-        if(safeRT):
-            # DEBUG: pg.draw.rect(newBg, pg.Color(255,255,0), safeRT.rect) # draws yellow rectangle
-            if(safeRT.rect.colliderect(player.rect)and cooldownTimer <=0 and len(coins) == 0):
-                level += 1
-                print(f'Send to new level {level}!')
-                cooldownTimer = 1.0 # cooldown to prevent immediate re-triggering of level transition
-
-                if level > MAX_LEVEL:  # player wins after beating all levels
-                    win_screen()
-                    return False  # return out of game completely
-                    
-                safeRT = SetUpLevel(level)
-                return game_loop()  # restart loop cleanly
-        
-        #blit the ui
-        font = get_font(20)
-        
-        DeathCounterUI = UIRect(
-            pos=((screen.get_width() / 2 )+300, (screen.get_height() / 2) + 300),
-            font=font,
-            text_input=f'Deaths: {numDeaths}',
-            foreground=pg.Color(0, 0, 0),
-            background=None
-        )
-        DeathCounterUI.update(screen)
-
         pg.display.flip()
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                exit()
+        # Spawn player at first safe area
+        player = Player(screen.get_width() / 2, screen.get_height() / 2)
+        player_spawn = pg.Vector2(screen.get_width() / 2, screen.get_height() / 2)
+        for (color, rect) in rectsOnScreen:
+            if color == LevelFunctions.SAFE_AREA_COLOR:
+                player_spawn = pg.Vector2(rect.left, rect.top)
+                player.pos = player_spawn.copy()
+                player.rect.topleft = (int(player.pos.x), int(player.pos.y))
+                break
+
+
+        # Draw level tiles
+        config = LEVEL_CONFIGS[level]
+        for (color, rect) in rectsOnScreen:
+            pg.draw.rect(newBg, color, rect)
+        LevelFunctions.cut_walls(newBg, rectsOnScreen, config['tile_size'])
+
+        # Create enemies
+        enemies = pg.sprite.Group()
+        cx, cy = screen.get_width() / 2, screen.get_height() / 2
+        for enemy in config['enemies'](cx, cy):
+            enemies.add(enemy)
+
+        # Spawn coins
+        coins = pg.sprite.Group()
+        for coin in config['coins'](cx, cy):
+            coins.add(coin)
+        LevelFunctions.assert_correct_coin_count(coins, level)
+        
+
+
+        player_group = pg.sprite.Group((player))
+
+        levelRunning = True
+        while levelRunning:
+            dt = clock.tick(60) 
+            #cooldown timer for death counter and coin counter
+            if cooldownTimer > 0:
+                cooldownTimer -= dt/1000
+
+            for event in pg.event.get(): # fetch all key presses
+                if event.type == pg.QUIT:
+                    exit()
+
+            keys = pg.key.get_pressed()
+            if keys[pg.K_m]: # call pause menu
+                if pause_menu():
+                    return None 
+                
+                
+
+            screen.fill(LevelFunctions.BACKGROUND_COLOR)
+            screen.blit(newBg, (0, 0))
+
+            player.update(dt, allwalls)
+            coins.update()
+
+            enemies.update()
+            enemies.draw(screen)
+        
+            player_group.draw(screen)
+            coins.draw(screen)
+
+            # Draw coin counter
+            display_coins = ContextMenu((cx - 400, cy - 300), get_font(25), f'Coins: {LevelFunctions.num_coins_left_in_level(coins, level)}/{LevelFunctions.level_coins(level)}',
+                                        pg.Color(0,0,0), None)
+            display_coins.update(screen)
+
+            # Check enemy collisions
+            for enemy in enemies:
+                if pg.sprite.collide_mask(player, enemy) and cooldownTimer <= 0:
+                    numDeaths += 1
+                    cooldownTimer = 0.5 # small cooldown to prevent multiple deaths from one collision
+                    player.respawn(player_spawn)
+                    reset_level_state(coins, cx, cy)
+                    break
+            
+            cc = pg.sprite.spritecollideany(player, coins, pg.sprite.collide_mask)
+            if cc:
+                coins.remove(cc)
+            
+            #Check for Finish area collisions
+            if(safeRT):
+                # DEBUG: pg.draw.rect(newBg, pg.Color(255,255,0), safeRT.rect) # draws yellow rectangle
+                if(safeRT.rect.colliderect(player.rect)and cooldownTimer <=0 and len(coins) == 0):
+                    level += 1
+                    print(level)
+                    print(f'Send to new level {level}!')
+                    cooldownTimer = 1.0 # cooldown to prevent immediate re-triggering of level transition
+
+                    if level > MAX_LEVEL:  # player wins after beating all levels
+                        return True  # return out of game completely
+                        
+                    safeRT = SetUpLevel(level)
+                    levelRunning = False  # 'break' out of the inner game loop to rebuild next level
+        
+            #blit the ui
+            font = get_font(20)
+            
+            DeathCounterUI = UIRect(
+                pos=((screen.get_width() / 2 )+300, (screen.get_height() / 2) + 300),
+                font=font,
+                text_input=f'Deaths: {numDeaths}',
+                foreground=pg.Color(0, 0, 0),
+                background=None
+            )
+            DeathCounterUI.update(screen)
+
+            pg.display.flip()
 
     return False
 
@@ -610,7 +647,7 @@ def splash_screen():
     while pg.time.get_ticks() - start < splash_screen_time_seconds * 1000: # show splash for 3 seconds
         for event in pg.event.get():
             if event.type == pg.QUIT:
-                pg.quit()
+                exit()
                 return False
             if event.type == pg.KEYDOWN or event.type == pg.MOUSEBUTTONDOWN:
                 return True
@@ -620,35 +657,57 @@ def splash_screen():
 
 def main_menu():
     play_button_font = get_font(60)
+    Main_Menu_UI = UIRect(
+
+        pos=((screen.get_width() / 2 -350  ), (screen.get_height() / 3)),
+        font=play_button_font,
+        text_input=f'MAIN MENU WELCOME',
+        foreground=pg.Color(0, 0, 0),
+        background=None
+    )
+    play_button = Button(
+        pos=(screen.get_width() / 2, screen.get_height() / 2 + 300),
+        font=play_button_font,
+        text_input="PLAY",
+        foreground=pg.Color(0, 0, 0),
+        background=pg.Color(255, 255, 255, 50)
+    )
+    
     while True:
 
         menu_mouse_pos = pg.mouse.get_pos()
 
-        play_button = Button(
-            pos=(screen.get_width() / 2, screen.get_height() / 2 + 300),
-            font=play_button_font,
-            text_input="PLAY",
-            foreground=pg.Color(0, 0, 0),
-            background=pg.Color(255, 255, 255, 50)
-        )
+        screen.blit(background, (0, 0))
+        screen.blit(Main_Menu_UI.surface,pg.math.Vector2(Main_Menu_UI.x_pos,Main_Menu_UI.y_pos))
 
         play_button.change_color(menu_mouse_pos)
         play_button.update(screen)
         pg.display.flip()
 
         for event in pg.event.get():
-            if event.type == pg.QUIT:
-                pg.quit()
-                return
             if event.type == pg.MOUSEBUTTONDOWN:
                 if play_button.rect.collidepoint(menu_mouse_pos):
-                    if not game_loop(): # go to end screen if false is returned
-                        background.fill(LevelFunctions.BACKGROUND_COLOR)
-                        return
+                    result = game_loop()
+
+                    if result is True:
+                        win_screen()
+                        break
+                    elif result is False:
+                        break
+                    elif result is None:
+                        continue   # go back to menu
+
+                        #end game 
+
             if event.type == pg.KEYDOWN and event.key == pg.K_m:
-                pg.quit()
+                exit()
                 return
 
 
 if splash_screen():
     main_menu()
+
+
+
+def exit():
+    sys.exit()

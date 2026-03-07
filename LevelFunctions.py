@@ -7,6 +7,13 @@ assets_dir = os.path.join(main_dir, "assets")
 
 #global variables for colors and dimensions
 
+COINS_TO_LEVEL = { # set up how many coins we want per level
+    1:4,
+    2:4,
+    3:1,
+    4:1,
+    5:2
+}
 BACKGROUND_CHECKER_BLUE = pg.Color(224, 218, 254)
 BACKGROUND_CHECKER_WHITE = pg.Color(249, 248, 255)
 BACKGROUND_BLACK = pg.Color(0,0,0)
@@ -136,25 +143,28 @@ def getAreaOfBox(listOfSafeAreaBoxes: list[pg.math.Vector2])->list:
     size =pg.math.Vector2(1+ (max_x - min_x), 1+ (max_y-min_y))
     return [size,bottomRight,topLeft]
 
-def level_coins(level):
-    match level:
-        case 1:
-            return 4
-        case 2:
-            return 2
-        case 3:
-            return 2
-        case 4:
-            return 1
-        case 5:
-            return 2
-        case _:
-            raise ValueError("Level does not support coins")
+# def level_coins(level):
+#     match level:
+#         case 1:
+#             return 4
+#         case 2:
+#             return 2
+#         case 3:
+#             return 2
+#         case 4:
+#             return 1
+#         case 5:
+#             return 2
+#         case _:
+#             raise ValueError("Level does not support coins")
         
 def assert_correct_coin_count(coin_group, level):
-    if level_coins(level) != len(coin_group.sprites()):
+    if COINS_TO_LEVEL[level]!= len(coin_group.sprites()):
         raise ValueError("Expected a different number of coins to render for this level")
     
+def check_number_of_levels(config):
+    assert len(config) == len(COINS_TO_LEVEL)
+    
 def num_coins_left_in_level(coin_group, level):
-    return level_coins(level) - len(coin_group)
+    return COINS_TO_LEVEL[level] - len(coin_group)
 

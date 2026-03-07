@@ -17,15 +17,20 @@ splash_screen_time_seconds = 2
 PLAYER_COLOR = pg.Color(251, 3, 1)
 SPEED_INT = 4
 PLAYER_SPEED = SPEED_INT * 100
-
 SCREEN_WIDTH = 1440
 SCREEN_HEIGHT = SCREEN_WIDTH
+
+
+
 
 ########################################################
 # Setting up screen display
 ########################################################
+
 pg.init()
 screen = pg.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+SCREEN_CENTER_X = screen.get_width() /2
+SCREEN_CENTER_Y = screen.get_height() /2
 clock = pg.time.Clock()
 background = pg.Surface(screen.get_size()).convert()
 background.fill(LevelFunctions.BACKGROUND_COLOR)
@@ -48,9 +53,14 @@ dim_overlay.fill((0, 0, 0))
 dim_overlay.set_alpha(120)
 splash_dimmed.blit(dim_overlay, (0, 0))
 
-
 def get_font(size):
     return pg.font.SysFont('comicsansms', size)
+
+TITLE_FONT = get_font(180)
+HEADER_FONT = get_font(100)
+MED_UI_FONT = get_font(60)
+SMALL_UI_FONT = get_font(25)
+
 
 
 
@@ -204,7 +214,8 @@ class Enemy(pg.sprite.Sprite):
     def __init__(self, x, y):
         pg.sprite.Sprite.__init__(self)
         self.anchor_pos = pg.math.Vector2(x, y)
-        self.image, self.rect = LevelFunctions.load_image('enemy.png', 1, (32, 32))
+        #self.image, self.rect = LevelFunctions.load_image('enemy.jpg', 0.125)
+        self.image, self.rect = LevelFunctions.load_image('enemy.png', 1, (32,32))
         self.mask = pg.mask.from_surface(self.image)
         self.pos = pg.Vector2(x, y)
         self.rect.topleft = (int(self.pos.x), int(self.pos.y))
@@ -339,19 +350,19 @@ class CircleEnemy(Enemy):
         self.pos = self.anchor_pos + (self.direction * self.radius)
         
         # at the end update the rect pos as well
-        self.rect.topleft = self.pos
+        self.rect.topleft = (int(self.pos.x), int(self.pos.y))
 
-    def update(self):
-        #  rotations per second per degrees
-        t = pg.time.get_ticks() / 1000.0
-        di = self.freq * (t / 1000) * 360
-        if (self.clockwise): di = -di
-        
+    def update(self, dt):
+        dt /= 1000  # convert ms -> seconds
+        di = self.freq * 360 * dt
+        if self.clockwise:
+            di = -di
+
         self.direction.rotate_ip(di)
         self.pos = self.anchor_pos + (self.direction * self.radius)
-    
-        # have to rotate pos around the anchorpos
-        self.rect.topleft = self.pos
+        
+
+        self.rect.topleft = (int(self.pos.x), int(self.pos.y)) # cast to int vector to lose floating point
 
 
 
@@ -368,15 +379,15 @@ LEVEL_CONFIGS = {
         'map': './assets/level1map.png',
         'tile_size': 60,
         'enemies': lambda cx, cy: [
-            SinEnemy(cx - 25, cy + 45, 3, 270, 0, 'x'),
-            SinEnemy(cx - 25, cy - 15, 3, 270, 1, 'x'),
-            SinEnemy(cx - 25, cy - 75, 3, 270, 0, 'x'),
-            SinEnemy(cx - 25, cy - 135, 3, 270, 1, 'x'),
+            SinEnemy(cx - 15, cy + 55, 3, 280, 0, 'x'),
+            SinEnemy(cx - 15, cy - 5, 3, 280, 1, 'x'),
+            SinEnemy(cx - 15, cy - 65, 3, 280, 0, 'x'),
+            SinEnemy(cx - 15, cy - 125, 3, 280, 1, 'x'),
         ],
         'coins': lambda cx, cy: [
-            Coin(cx -15, cy  -125),
-            Coin(cx - 15, cy -65 ),
-            Coin(cx -15 , cy  -5),
+            Coin(cx -15, cy  - 125),
+            Coin(cx - 15, cy - 65 ),
+            Coin(cx -15 , cy  - 5),
             Coin(cx -15, cy +55),
         ],
     },
@@ -390,24 +401,23 @@ LEVEL_CONFIGS = {
             SinEnemy(cx - 45, cy - 125, 3, 190, 0, 'y'),
             SinEnemy(cx - 105, cy - 125, 3, 190, 1, 'y'),
             SinEnemy(cx - 165, cy - 125, 3, 190, 0, 'y'),
-            SinEnemy(cx - 235, cy - 125, 3, 190, 1, 'y'),
-            SinEnemy(cx - 295, cy - 125, 3, 190, 0, 'y'),
-            SinEnemy(cx - 355, cy - 125, 3, 190, 1, 'y'),
+            SinEnemy(cx - 225, cy - 125, 3, 190, 1, 'y'),
+            SinEnemy(cx - 285, cy - 125, 3, 190, 0, 'y'),
+            SinEnemy(cx - 345, cy - 125, 3, 190, 1, 'y'),
         ],
         'coins': lambda cx, cy: [
-            Coin(cx - 90, cy - 90),
-            Coin(cx - 50, cy - 50),
+            Coin(cx - 105, cy - 125),
+            Coin(cx - 45, cy - 125),
+            Coin(cx - 105, cy - 65),
+            Coin(cx - 45, cy - 65),
         ],
     },
     3: {
         'map': './assets/level_duck.png',
         'tile_size': 50,
-        'enemies': lambda cx, cy: [
-            CircleEnemy(cx, cy, 300, 0.25, 1),
-        ],
+        'enemies': lambda cx, cy: [],
         'coins': lambda cx, cy: [
-            Coin(cx - 90, cy - 90),
-            Coin(cx - 50, cy - 50),
+            Coin(cx - 63, cy - 163),
         ],
     },
     4: {
@@ -418,32 +428,57 @@ LEVEL_CONFIGS = {
             for delay in [0.1, 0.3, 0.5, 0.7, 0.9, 1.1, 1.3, 1.5, 1.7, 1.9, 2.1, 2.3, 2.5]
         ],
         'coins': lambda cx, cy: [
-            Coin(cx - 90, cy - 90),
+            Coin(cx - 165, cy - 125),
         ],
     },
     5: {
         'map': './assets/level_five.png',
         'tile_size': 60,
         'enemies': lambda cx, cy: [
-            # Upper corridor patrol - blocks the path near spawn
-            SquareEnemy(cx - 60, cy - 380, 1.0, 70, 0.0, clockwise=True),
-            SquareEnemy(cx - 60, cy - 380, 1.0, 70, 1.0, clockwise=True),
-            SquareEnemy(cx - 60, cy - 380, 1.0, 70, 2.0, clockwise=True),
-            # Mid-maze patrol - around the internal wall obstacles
-            SquareEnemy(cx - 180, cy - 230, 0.8, 55, 0.0, clockwise=False),
-            SquareEnemy(cx - 180, cy - 230, 0.8, 55, 1.5, clockwise=False),
-            # Lower corridor patrol - guards the exit
-            SquareEnemy(cx + 10, cy + 60, 1.0, 80, 0.0, clockwise=True),
-            SquareEnemy(cx + 10, cy + 60, 1.0, 80, 1.0, clockwise=True),
-            SquareEnemy(cx + 10, cy + 60, 1.0, 80, 2.0, clockwise=True),
+            # # Upper corridor patrol - blocks the path near spawn
+            # SquareEnemy(cx - 60, cy - 380, 1.0, 70, 0.0, clockwise=True),
+            # SquareEnemy(cx - 60, cy - 380, 1.0, 70, 1.0, clockwise=True),
+            # SquareEnemy(cx - 60, cy - 380, 1.0, 70, 2.0, clockwise=True),
+            # # Mid-maze patrol - around the internal wall obstacles
+            # SquareEnemy(cx - 180, cy - 230, 0.8, 55, 0.0, clockwise=False),
+            # SquareEnemy(cx - 180, cy - 230, 0.8, 55, 1.5, clockwise=False),
+            # # Lower corridor patrol - guards the exit
+            # SquareEnemy(cx + 10, cy + 60, 1.0, 80, 0.0, clockwise=True),
+            # SquareEnemy(cx + 10, cy + 60, 1.0, 80, 1.0, clockwise=True),
+            # SquareEnemy(cx + 10, cy + 60, 1.0, 80, 2.0, clockwise=True),
+
+            CircleEnemy(cx, cy, 50, 0.25, 0),
+            CircleEnemy(cx, cy, 150, 0.25, 0),
+            CircleEnemy(cx, cy, 250, 0.25, 0),
+            CircleEnemy(cx, cy, 350, 0.25, 0),
+
+            CircleEnemy(cx, cy, 50, 0.25, -90),
+            CircleEnemy(cx, cy, 150, 0.25, -90),
+            CircleEnemy(cx, cy, 250, 0.25, -90),
+            CircleEnemy(cx, cy, 350, 0.25, -90),
+
+            CircleEnemy(cx, cy, 50, 0.25, 180),
+            CircleEnemy(cx, cy, 150, 0.25, 180),
+            CircleEnemy(cx, cy, 250, 0.25, 180),
+            CircleEnemy(cx, cy, 350, 0.25, 180),
+
+            CircleEnemy(cx, cy, 50, 0.25, 90),
+            CircleEnemy(cx, cy, 150, 0.25, 90),
+            CircleEnemy(cx, cy, 250, 0.25, 90),
+            CircleEnemy(cx, cy, 350, 0.25, 90),
+
         ],
         'coins': lambda cx, cy: [
             Coin(cx - 150, cy - 150),
             Coin(cx + 30, cy - 50),
         ],
     },
+    # 6: {
+        
+    # }
 }
-
+#check that the amount of levels in the config is what matches the COINS_TO_LEVEL in levelfunctions
+LevelFunctions.check_number_of_levels(LEVEL_CONFIGS)
 MAX_LEVEL = len(LEVEL_CONFIGS)
 
 safeRT = SetUpLevel(level)
@@ -453,19 +488,18 @@ safeRT = SetUpLevel(level)
 ########################################################
 def pause_menu():
     global background
-    fontHeader = get_font(180)
-    fontSubHeader = get_font(100)
+
     Pause_UI = UIRect(
-        pos=(screen.get_width() / 2 - 540, screen.get_height() / 2 - 300),
-        font=fontHeader,
+        pos=(SCREEN_CENTER_X/ 2 - 180 , SCREEN_CENTER_Y - 300),
+        font=TITLE_FONT,
         text_input="Game Paused",
         foreground=pg.Color(0, 0, 0),
         background=pg.Color(255, 255, 255, 50)
     )
     main_menu_button = Button(
-        pos=(screen.get_width() / 2, screen.get_height() / 2 + 300),
-        font=fontSubHeader,
-        text_input="Main Menu",
+        pos=(SCREEN_CENTER_X / 2 +350, SCREEN_CENTER_Y + 300),
+        font=HEADER_FONT,
+        text_input="Back To Main Menu",
         foreground=pg.Color(0, 0, 0),
         background=pg.Color(255, 255, 255, 50)
     )
@@ -496,20 +530,18 @@ def pause_menu():
 
 def win_screen():
     global background
-    font1 = get_font(180)
-    font2 = get_font(60)
     while True:
         screen.blit(background, (0, 0))
         win_UI = UIRect(
-            pos=(screen.get_width() / 2, screen.get_height() / 2),
-            font=font1,
+            pos=(SCREEN_CENTER_X, SCREEN_CENTER_Y),
+            font=TITLE_FONT,
             text_input="You Win!",
             foreground=pg.Color(0, 0, 0),
             background=pg.Color(255, 255, 255, 50)
         )
         TotalDeathsUI = UIRect(
-            pos=(screen.get_width() / 4, screen.get_height() / 4),
-            font=font2,
+            pos=(SCREEN_CENTER_X/2, SCREEN_CENTER_Y /2),
+            font=MED_UI_FONT,
             text_input=f'TOTAL DEATHS: {numDeaths}',
             foreground=pg.Color(0, 0, 0),
             background=pg.Color(255, 255, 255, 50)
@@ -539,15 +571,10 @@ def reset_level_state(coins, cx, cy):
 cooldownTimer = 0
 
 def game_loop():
-
     global listOfSafeAreaBoxes, currentLevelSafeArea,level,safeRT,numDeaths,cooldownTimer
 
 
-  
-    
-
     ##################### Main game loop #####################
-
     while level <= MAX_LEVEL:
     # Build level background and walls
         
@@ -567,8 +594,8 @@ def game_loop():
             if event.type == pg.QUIT:
                 exit()
         # Spawn player at first safe area
-        player = Player(screen.get_width() / 2, screen.get_height() / 2)
-        player_spawn = pg.Vector2(screen.get_width() / 2, screen.get_height() / 2)
+        player = Player(SCREEN_CENTER_X, SCREEN_CENTER_Y)
+        player_spawn = pg.Vector2(SCREEN_CENTER_X, SCREEN_CENTER_Y)
         for (color, rect) in rectsOnScreen:
             if color == LevelFunctions.SAFE_AREA_COLOR:
                 player_spawn = pg.Vector2(rect.left, rect.top)
@@ -585,10 +612,16 @@ def game_loop():
 
         # Create enemies
         enemies = pg.sprite.Group()
-        cx, cy = screen.get_width() / 2, screen.get_height() / 2
+        circEnemies = pg.sprite.Group()
+        cx, cy = SCREEN_CENTER_X, SCREEN_CENTER_Y
         for enemy in config['enemies'](cx, cy):
-            enemies.add(enemy)
+            if (not isinstance(enemy, CircleEnemy)):
+                enemies.add(enemy)
+            elif(isinstance(enemy, CircleEnemy)): #add enemy to circle enemies
+                circEnemies.add(enemy)
+                
 
+        #Create circle enemies 
         # Spawn coins
         coins = pg.sprite.Group()
         for coin in config['coins'](cx, cy):
@@ -624,18 +657,30 @@ def game_loop():
             coins.update()
 
             enemies.update()
+
+            circEnemies.update(dt)
+            circEnemies.draw(screen)
             enemies.draw(screen)
         
             player_group.draw(screen)
             coins.draw(screen)
 
             # Draw coin counter
-            display_coins = ContextMenu((cx - 400, cy - 300), get_font(25), f'Coins: {LevelFunctions.num_coins_left_in_level(coins, level)}/{LevelFunctions.level_coins(level)}',
+            display_coins = ContextMenu((cx +200, cy - 350), SMALL_UI_FONT, f'Coins: {LevelFunctions.num_coins_left_in_level(coins, level)}/{LevelFunctions.COINS_TO_LEVEL[level]}',
                                         pg.Color(0,0,0), None)
             display_coins.update(screen)
 
             # Check enemy collisions
             for enemy in enemies:
+                if pg.sprite.collide_mask(player, enemy) and cooldownTimer <= 0:
+                    numDeaths += 1
+                    cooldownTimer = 0.5 # small cooldown to prevent multiple deaths from one collision
+                    player.respawn(player_spawn)
+                    reset_level_state(coins, cx, cy)
+                    break
+
+            # Check enemy collisions (circle enemy )
+            for enemy in circEnemies:
                 if pg.sprite.collide_mask(player, enemy) and cooldownTimer <= 0:
                     numDeaths += 1
                     cooldownTimer = 0.5 # small cooldown to prevent multiple deaths from one collision
@@ -663,11 +708,10 @@ def game_loop():
                     levelRunning = False  # 'break' out of the inner game loop to rebuild next level
         
             #blit the ui
-            font = get_font(20)
             
             DeathCounterUI = UIRect(
-                pos=((screen.get_width() / 2 )+300, (screen.get_height() / 2) + 300),
-                font=font,
+                pos=((SCREEN_CENTER_X )+350, (SCREEN_CENTER_Y) - 350),
+                font=SMALL_UI_FONT, 
                 text_input=f'Deaths: {numDeaths}',
                 foreground=pg.Color(0, 0, 0),
                 background=None
@@ -700,17 +744,17 @@ def splash_screen():
 
 
 def main_menu():
-    play_button_font = get_font(60)
+    play_button_font = MED_UI_FONT
     Main_Menu_UI = UIRect(
 
-        pos=((screen.get_width() / 2 -350  ), (screen.get_height() / 3)),
+        pos=((SCREEN_CENTER_X -350  ), (screen.get_height() / 3)),
         font=play_button_font,
         text_input=f'MAIN MENU WELCOME',
         foreground=pg.Color(0, 0, 0),
         background=None
     )
     play_button = Button(
-        pos=(screen.get_width() / 2, screen.get_height() / 2 + 300),
+        pos=(SCREEN_CENTER_X, SCREEN_CENTER_Y + 300),
         font=play_button_font,
         text_input="PLAY",
         foreground=pg.Color(0, 0, 0),

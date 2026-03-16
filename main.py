@@ -795,7 +795,5 @@ def main_menu():
 if splash_screen():
     main_menu()
 
-
-
 def exit():
     sys.exit()
